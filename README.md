@@ -1,6 +1,6 @@
 # Next-Gen Custom Ender Chest
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/maiminhdung/CustomEnderChest-NextGen/build.yml?branch=master)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/maiminhdung/CustomEnderChest-NextGen/gradle-build.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 [![Modrinth](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/modrinth_vector.svg)](https://modrinth.com/plugin/smart-spawner-plugin)
