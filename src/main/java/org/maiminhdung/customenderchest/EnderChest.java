@@ -1,5 +1,6 @@
 package org.maiminhdung.customenderchest;
 
+import org.maiminhdung.customenderchest.bstats.Metrics;
 import org.maiminhdung.customenderchest.commands.EnderChestCommand;
 import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.listeners.PlayerListener;
@@ -44,7 +45,14 @@ public final class EnderChest extends JavaPlugin {
 			command.setTabCompleter(commandExecutor);
 		}
 
+		// Bstats Metrics
+		setupBtatsMetrics();
+
 		this.getLogger().info("CustomEnderChest has been enabled successfully!");
+	}
+
+	private void setupBtatsMetrics() {
+		Metrics metrics = new Metrics(this, 26551);
 	}
 
 	@Override
