@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 
 public class PlayerListener implements Listener {
 
@@ -42,14 +43,19 @@ public class PlayerListener implements Listener {
             return;
         }
 
+        event.setCancelled(true);
         Player player = event.getPlayer();
 
-        if (player.hasPermission("customec.level.0")) {
-            event.setCancelled(true);
-
-            plugin.getEnderChestManager().openEnderChest(player);
-            plugin.getSoundHandler().playSound(player, "open");
+        int size = EnderChestUtils.getSize(player);
+        if (size == 0) {
+            // If the player has no custom ender chest size, do nothing
+            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            plugin.getSoundHandler().playSound(player, "fail");
+            return; //
         }
+
+        // If the player has a custom ender chest size, open it
+        plugin.getEnderChestManager().openEnderChest(player);
     }
 
     @EventHandler

@@ -47,6 +47,9 @@ public class EnderChestManager {
                 .thenAccept(items -> {
                     Scheduler.runEntityTask(player, () -> {
                         int size = EnderChestUtils.getSize(player);
+                        if (size == 0) {
+                            return;
+                        }
                         Component title = EnderChestUtils.getTitle(player);
                         Inventory inv = Bukkit.createInventory(player, size, title);
 
@@ -73,17 +76,21 @@ public class EnderChestManager {
     }
 
     public void openEnderChest(Player player) {
+        int size = EnderChestUtils.getSize(player);
+        if (size == 0) {
+            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            soundHandler.playSound(player, "fail");
+            return;
+        }
+
         Inventory inv = liveData.getIfPresent(player.getUniqueId());
         if (inv == null) {
             player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.data-still-loading"));
             return;
         }
 
-        int currentSize = inv.getSize();
-        int newSize = EnderChestUtils.getSize(player);
-
-        if (currentSize != newSize) {
-            inv = resizeInventory(inv, newSize, player);
+        if (inv.getSize() != size) {
+            inv = resizeInventory(inv, size, player);
             liveData.put(player.getUniqueId(), inv);
         }
 

@@ -13,7 +13,7 @@ command:
 
 titles:
   # Placeholders: <player>, <level>
-  enderchest: "<level> &8- <light_purple><player>'s Chest"
+  enderchest: "<level> - <light_purple><player>'s Chest"
   admin_view: "<dark_red>Admin View: <white><player>"
 
 levels:

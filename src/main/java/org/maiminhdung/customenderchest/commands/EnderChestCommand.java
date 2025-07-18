@@ -37,10 +37,6 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
             if (sender instanceof Player p) {
-                if (!p.hasPermission("CustomEnderChest.command.open.self")) {
-                    p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
-                    return true;
-                }
                 plugin.getEnderChestManager().openEnderChest(p);
             } else {
                 sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
@@ -53,7 +49,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             case "open" -> handleOpen(sender, args);
             case "reload" -> handleReload(sender);
             case "importlegacy" -> handleImport(sender);
-            case "delete" -> handleDelete(sender, args);
+            // case "delete" -> handleDelete(sender, args); // Next update
             default -> sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission")); // Hoặc tin nhắn help
         }
         return true;
@@ -65,10 +61,6 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length == 1) {
-            if (!p.hasPermission("CustomEnderChest.command.open.self")) {
-                p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
-                return;
-            }
             plugin.getEnderChestManager().openEnderChest(p);
         } else {
             if (!p.hasPermission("CustomEnderChest.command.open.other")) {

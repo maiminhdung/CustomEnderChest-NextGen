@@ -83,7 +83,7 @@ public class StorageManager {
             config.setPoolName("CEC-H2-Pool");
             File dbFile = new File(plugin.getDataFolder(), "data/enderchests");
             config.setJdbcUrl("jdbc:h2:" + dbFile.getAbsolutePath());
-            config.setDriverClassName("net.craftersland.customenderchest.lib.h2.Driver");
+            config.setDriverClassName("org.maiminhdung.customenderchest.lib.h2.Driver");
 
             config.setMaximumPoolSize(plugin.config().getInt("storage.pool-settings.max-pool-size", 10));
 

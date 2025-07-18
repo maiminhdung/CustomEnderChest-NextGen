@@ -19,12 +19,12 @@ public final class EnderChestUtils {
      * @return The size of the Ender Chest (9, 18, 27, 36, 45, 54), or 0 if no permission.
      */
     public static int getSize(Player p) {
-        if (p.hasPermission("customec.level.5")) return 54;
-        if (p.hasPermission("customec.level.4")) return 45;
-        if (p.hasPermission("customec.level.3")) return 36;
-        if (p.hasPermission("customec.level.2")) return 27;
-        if (p.hasPermission("customec.level.1")) return 18;
-        if (p.hasPermission("customec.level.0")) return 9;
+        if (p.hasPermission("CustomEnderChest.level.5")) return 54;
+        if (p.hasPermission("CustomEnderChest.level.4")) return 45;
+        if (p.hasPermission("CustomEnderChest.level.3")) return 36;
+        if (p.hasPermission("CustomEnderChest.level.2")) return 27;
+        if (p.hasPermission("CustomEnderChest.level.1")) return 18;
+        if (p.hasPermission("CustomEnderChest.level.0")) return 9;
         return 0; // No permission
     }
 
