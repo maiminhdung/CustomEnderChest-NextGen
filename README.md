@@ -4,6 +4,10 @@
 [![Spigot Downloads](https://img.shields.io/spiget/downloads/127090?logo=spigotmc&logoColor=white&label=spigot%20downloads&labelColor=%23ED8106&color=%23FF994C)](https://www.spigotmc.org/resources/next-gen-custom-ender-chest-async-multi-storage-mysql-h2-yml-folia-support.127090/)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
+[![Modrinth](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/modrinth_vector.svg)](https://modrinth.com/plugin/smart-spawner-plugin)
+[![Spigot](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/spigot_vector.svg)]([https://www.spigotmc.org/resources/120743/](https://www.spigotmc.org/resources/127090/))
+[![Hangar](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/hangar_vector.svg)](https://hangar.papermc.io/maiminhdung/Next-Gen-CustomEnderChest)
+
 A high-performance, fully asynchronous, and highly configurable Ender Chest plugin for modern Paper and Folia servers.
 
 ## Overview
