@@ -1,0 +1,85 @@
+# -------------------------------------------------- #
+#      Configuration for CustomEnderChest v2.0       #
+# -------------------------------------------------- #
+# Thank you for using the refactored version!
+# All messages, titles, and user-facing text are now managed in the /lang directory.
+
+# General plugin settings
+general:
+  # Select the language file to use.
+  # Example: "en" will load "lang_en.yml", "vi" will load "lang_vi.yml".
+  # Make sure the corresponding file exists in the plugin's /lang folder.
+  locale: "en"
+
+# Database settings
+storage:
+  # Storage type. Options:
+  # yml     - Stores data in YAML files, no external setup needed.
+  # h2      - (Default & Recommended for single servers) Fast, lightweight, stores data in a single file, no external setup needed.
+  # mysql   - (Recommended for multi-server networks) Requires a separate MySQL server.
+  type: "h2"
+
+  # The table name that will be used in the database.
+  table_name: "custom_enderchests"
+
+  # Periodically auto-save data for online players.
+  # This helps minimize data loss in case of a server crash.
+  # Time is in seconds.
+  auto-save-interval-seconds: 300 # Default is 5 minutes
+
+  # Settings for MySQL (only apply if `type` is "mysql")
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "enderchest_db"
+    username: "user"
+    password: "password"
+    # Enable/disable SSL encryption for the connection.
+    use-ssl: false
+
+  # Settings for the Connection Pool (HikariCP).
+  # These settings optimize database connection performance.
+  # You generally don't need to change these unless you know what you're doing.
+  pool-settings:
+    max-pool-size: 10
+    min-idle: 5
+    connection-timeout: 30000 # 30 seconds
+
+  # Automatically clean up old user data in MySQL
+  auto-cleanup:
+    # Enable/disable the automatic deletion of inactive player data.
+    enabled: false
+    # Number of inactive days. Data for players who have been offline for this duration will be deleted.
+    inactive-days: 90
+
+# Ender Chest gameplay options
+enderchest-options:
+  # Disable opening the custom ender chest by right-clicking an Ender Chest block.
+  # Useful if you only want players to open the chest via command.
+  disable-enderchest-click: false
+
+# Sound customization
+sounds:
+  # Disable all plugin sounds if set to `true`.
+  disable-all: false
+
+  # You can find valid sound names here:
+  # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+  # (Use the names from the Enum column)
+
+  open:
+    name: "BLOCK_ENDER_CHEST_OPEN"
+    volume: 1.0
+    pitch: 1.0
+  close:
+    name: "BLOCK_ENDER_CHEST_CLOSE"
+    volume: 1.0
+    pitch: 1.0
+  fail:
+    name: "BLOCK_NOTE_BLOCK_PLING"
+    volume: 1.0
+    pitch: 0.5
+  reload:
+    name: "ENTITY_PLAYER_LEVELUP"
+    volume: 0.8
+    pitch: 1.5
