@@ -1,7 +1,6 @@
 # Next-Gen Custom Ender Chest
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/maiminhdung/CustomEnderChest-NextGen/build.yml?branch=main)
-[![Spigot Downloads](https://img.shields.io/spiget/downloads/127090?logo=spigotmc&logoColor=white&label=spigot%20downloads&labelColor=%23ED8106&color=%23FF994C)](https://www.spigotmc.org/resources/next-gen-custom-ender-chest-async-multi-storage-mysql-h2-yml-folia-support.127090/)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 [![Modrinth](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/available/modrinth_vector.svg)](https://modrinth.com/plugin/smart-spawner-plugin)
