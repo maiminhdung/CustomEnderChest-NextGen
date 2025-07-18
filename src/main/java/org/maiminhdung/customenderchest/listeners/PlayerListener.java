@@ -51,7 +51,7 @@ public class PlayerListener implements Listener {
             // If the player has no custom ender chest size, do nothing
             player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             plugin.getSoundHandler().playSound(player, "fail");
-            return; //
+            return;
         }
 
         // If the player has a custom ender chest size, open it
