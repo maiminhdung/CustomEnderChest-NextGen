@@ -2,13 +2,13 @@ name: Gradle Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths-ignore:
       - '**.md'
       - '.gitignore'
       - 'LICENSE'
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     paths-ignore:
       - '**.md'
       - '.gitignore'
