@@ -2,8 +2,10 @@ package org.maiminhdung.customenderchest.data;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
+import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import net.kyori.adventure.text.Component;
@@ -11,6 +13,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -21,10 +26,13 @@ public class EnderChestManager {
     private final SoundHandler soundHandler;
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
+    private final Map<Inventory, UUID> adminViewedChests = new HashMap<>();
+    private final DebugLogger debug;
 
     public EnderChestManager(EnderChest plugin) {
         this.plugin = plugin;
         this.soundHandler = plugin.getSoundHandler();
+        this.debug = plugin.getDebugLogger();
 
         this.liveData = CacheBuilder.newBuilder()
                 .expireAfterAccess(30, TimeUnit.MINUTES)
@@ -43,6 +51,7 @@ public class EnderChestManager {
     }
 
     public void onPlayerJoin(Player player) {
+        debug.log("Player " + player.getName() + " is joining. Starting to load data...");
         plugin.getStorageManager().getStorage().loadEnderChest(player.getUniqueId())
                 .thenAccept(items -> {
                     Scheduler.runEntityTask(player, () -> {
@@ -63,6 +72,7 @@ public class EnderChestManager {
                             }
                         }
                         liveData.put(player.getUniqueId(), inv);
+                        debug.log("Data for " + player.getName() + " loaded into cache. Size: " + size);
                     });
                 });
     }
@@ -70,9 +80,13 @@ public class EnderChestManager {
     public void onPlayerQuit(Player player) {
         Inventory inv = liveData.getIfPresent(player.getUniqueId());
         if (inv != null) {
-            saveEnderChest(player.getUniqueId(), player.getName(), inv);
+            debug.log("Player " + player.getName() + " is quitting. Saving data...");
+            saveEnderChest(player.getUniqueId(), player.getName(), inv)
+                    .thenRun(() -> {
+                        liveData.invalidate(player.getUniqueId());
+                        debug.log("Data for " + player.getName() + " saved and removed from cache.");
+                    });
         }
-        liveData.invalidate(player.getUniqueId());
     }
 
     public void openEnderChest(Player player) {
@@ -108,9 +122,25 @@ public class EnderChestManager {
         return newInv;
     }
 
+    public void clearCacheFor(UUID uuid) {
+        Inventory inv = liveData.getIfPresent(uuid);
+        if (inv != null) {
+            // Clear the inventory contents
+            inv.clear();
+        }
+        // Clear the cache entry
+        liveData.invalidate(uuid);
+        debug.log("Cache cleared for UUID: " + uuid);
+    }
+
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, Inventory inv) {
         return plugin.getStorageManager().getStorage()
                 .saveEnderChest(uuid, playerName, inv.getSize(), inv.getContents());
+    }
+
+    public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, int size, ItemStack[] items) {
+        return plugin.getStorageManager().getStorage()
+                .saveEnderChest(uuid, playerName, size, items);
     }
 
     public Inventory getLoadedEnderChest(UUID uuid) {
@@ -128,19 +158,29 @@ public class EnderChestManager {
     }
 
     private CompletableFuture<Void> autoSaveAll() {
-        if (liveData.asMap().isEmpty()) {
+        Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
+
+        if (cacheSnapshot.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
 
-        CompletableFuture<?>[] futures = liveData.asMap().entrySet().stream()
+        debug.log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
+
+        CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
                     UUID uuid = entry.getKey();
+                    Inventory inv = entry.getValue();
+                    // Use Bukkit API to get player name. May return null if player is offline.
                     Player p = Bukkit.getPlayer(uuid);
                     String name = (p != null) ? p.getName() : null;
-                    return saveEnderChest(uuid, name, entry.getValue());
+                    return saveEnderChest(uuid, name, inv);
                 })
                 .toArray(CompletableFuture[]::new);
 
         return CompletableFuture.allOf(futures);
+    }
+
+    public Map<Inventory, UUID> getAdminViewedChests() {
+        return adminViewedChests;
     }
 }

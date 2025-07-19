@@ -10,6 +10,8 @@ general:
   # Example: "en" will load "lang_en.yml", "vi" will load "lang_vi.yml".
   # Make sure the corresponding file exists in the plugin's /lang folder.
   locale: "en"
+  # Set to true to enable debug logging. Useful for troubleshooting.
+  debug: false
 
 # Database settings
 storage:

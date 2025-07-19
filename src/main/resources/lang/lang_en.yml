@@ -8,6 +8,7 @@ messages:
 command:
   usage: "<red>Usage: <gray>/<label> <usage>"
   player-not-found: "<red>Player '<player>' not found or has no data."
+  delete-usage: "<red>Usage: <gray>/<label> delete <player>"
   delete-success: "<green>Successfully deleted Ender Chest data for <white><player></white>."
   loading-chest: "<yellow>Loading <white><player>'s</white> Ender Chest..."
 

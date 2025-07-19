@@ -6,6 +6,7 @@ import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.listeners.PlayerListener;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.storage.StorageManager;
+import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,6 +20,7 @@ public final class EnderChest extends JavaPlugin {
 	private LocaleManager localeManager;
 	private SoundHandler soundHandler;
 	private StorageManager storageManager;
+	private DebugLogger debugLogger;
 
 	@Override
 	public void onEnable() {
@@ -26,6 +28,7 @@ public final class EnderChest extends JavaPlugin {
 
 		// Initialize configuration
 		this.configHandler = new ConfigHandler(this);
+		this.debugLogger = new DebugLogger(this);
 		this.localeManager = new LocaleManager(this);
 		this.soundHandler = new SoundHandler(this);
 
@@ -86,5 +89,9 @@ public final class EnderChest extends JavaPlugin {
 
 	public StorageManager getStorageManager() {
 		return storageManager;
+	}
+
+	public DebugLogger getDebugLogger() {
+		return debugLogger;
 	}
 }

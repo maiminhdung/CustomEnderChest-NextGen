@@ -1,7 +1,9 @@
 package org.maiminhdung.customenderchest.commands;
 
+import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
+import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.data.LegacyImporter;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
@@ -14,11 +16,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class EnderChestCommand implements CommandExecutor, TabCompleter {
@@ -26,11 +29,13 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     private final EnderChest plugin;
     private final LegacyImporter legacyImporter;
     private final StorageInterface storage;
+    private final EnderChestManager manager;
 
     public EnderChestCommand(EnderChest plugin) {
         this.plugin = plugin;
         this.legacyImporter = new LegacyImporter(plugin);
         this.storage = plugin.getStorageManager().getStorage();
+        this.manager = plugin.getEnderChestManager();
     }
 
     @Override
@@ -46,11 +51,25 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
         String subCommand = args[0].toLowerCase();
         switch (subCommand) {
-            case "open" -> handleOpen(sender, args);
-            case "reload" -> handleReload(sender);
-            case "importlegacy" -> handleImport(sender);
-            // case "delete" -> handleDelete(sender, args); // Next update
-            default -> sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission")); // Hoặc tin nhắn help
+            case "open":
+                handleOpen(sender, args);
+                break;
+            case "reload":
+                handleReload(sender);
+                break;
+            case "importlegacy":
+                handleImport(sender);
+                break;
+            case "delete":
+                handleDelete(sender, args, label);
+                break;
+            default:
+                if (sender instanceof Player p) {
+                    plugin.getEnderChestManager().openEnderChest(p);
+                } else {
+                    sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
+                }
+                break;
         }
         return true;
     }
@@ -74,36 +93,53 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     private void openOtherPlayerChest(Player admin, String targetName) {
         admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.loading-chest", Placeholder.unparsed("player", targetName)));
 
-        // Use UUID from offline player lookup
+        Player targetOnline = Bukkit.getPlayerExact(targetName);
+        if (targetOnline != null) {
+            // --- For online player ---
+            Inventory liveInv = plugin.getEnderChestManager().getLoadedEnderChest(targetOnline.getUniqueId());
+            if (liveInv == null) {
+                admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found", Placeholder.unparsed("player", targetName)));
+                return;
+            }
+
+            Component title = EnderChestUtils.getAdminTitle(targetOnline.getName());
+            Inventory adminView = Bukkit.createInventory(admin, liveInv.getSize(), title);
+            adminView.setContents(liveInv.getContents());
+
+            plugin.getEnderChestManager().getAdminViewedChests().put(adminView, targetOnline.getUniqueId());
+            admin.openInventory(adminView);
+            plugin.getSoundHandler().playSound(admin, "open");
+            return;
+        }
+
+        // For offline player
         Scheduler.supplyAsync(() -> Bukkit.getOfflinePlayer(targetName))
                 .thenAccept(target -> {
-                    if (target == null || !target.hasPlayedBefore()) {
+                    if (!target.hasPlayedBefore()) {
                         admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found", Placeholder.unparsed("player", targetName)));
                         return;
                     }
 
-                    Scheduler.supplyAsync(() -> {
-                        ItemStack[] items = storage.loadEnderChest(target.getUniqueId()).join();
-                        int size = storage.loadEnderChestSize(target.getUniqueId()).join();
-                        if (items == null || size == 0) return null;
+                    storage.loadEnderChest(target.getUniqueId()).thenCombine(storage.loadEnderChestSize(target.getUniqueId()), (items, size) -> {
+                        if (items == null || size == 0) {
+                            admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found", Placeholder.unparsed("player", targetName)));
+                            return null;
+                        }
 
-                        // Tạo inventory trong thread async
                         Component title = EnderChestUtils.getAdminTitle(target.getName() != null ? target.getName() : targetName);
                         Inventory inv = Bukkit.createInventory(admin, size, title);
                         inv.setContents(items);
-                        return inv;
-                    }).thenAccept(inv -> {
-                        if (inv != null) {
-                            Scheduler.runEntityTask(admin, () -> {
-                                admin.openInventory(inv);
-                                plugin.getSoundHandler().playSound(admin, "open");
-                            });
-                        } else {
-                            admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found", Placeholder.unparsed("player", targetName)));
-                        }
+
+                        plugin.getEnderChestManager().getAdminViewedChests().put(inv, target.getUniqueId());
+                        Scheduler.runEntityTask(admin, () -> {
+                            admin.openInventory(inv);
+                            plugin.getSoundHandler().playSound(admin, "open");
+                        });
+                        return null;
                     });
                 });
     }
+
     private void handleReload(CommandSender sender) {
         if (!sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -111,6 +147,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
         plugin.config().reload();
         plugin.getLocaleManager().loadLocale();
+        plugin.getDebugLogger().reload();
         sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.reload-success"));
     }
 
@@ -122,8 +159,61 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         legacyImporter.runImport(sender);
     }
 
-    private void handleDelete(CommandSender sender, String[] args) {
-        // Next update: Implement delete functionality
+    private void handleDelete(CommandSender sender, String[] args, String label) {
+        if (!sender.hasPermission("CustomEnderChest.command.delete")) {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-usage",
+                    Placeholder.unparsed("label", label)));
+            return;
+        }
+
+        String targetName = args[1];
+
+        Scheduler.supplyAsync(() -> Bukkit.getOfflinePlayer(targetName))
+                .thenAccept(target -> {
+                    if (!target.hasPlayedBefore()) {
+                        sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found",
+                                Placeholder.unparsed("player", targetName)));
+                        return;
+                    }
+
+                    UUID targetUUID = target.getUniqueId();
+                    String finalName = target.getName() != null ? target.getName() : targetName;
+
+                    if (target.isOnline()) {
+                        Player onlineTarget = target.getPlayer();
+                        int size = EnderChestUtils.getSize(Objects.requireNonNull(onlineTarget));
+
+                        ItemStack[] emptyItems = new ItemStack[size];
+                        manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
+                                .thenRun(() -> {
+                                    Scheduler.runEntityTask(onlineTarget, () -> {
+                                        manager.clearCacheFor(targetUUID);
+                                        onlineTarget.closeInventory();
+                                    });
+                                    sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
+                                            Placeholder.unparsed("player", finalName)));
+                                });
+                    } else {
+                        storage.loadEnderChestSize(targetUUID).thenAccept(size -> {
+                            if (size == 0) {
+                                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found",
+                                        Placeholder.unparsed("player", targetName)));
+                                return;
+                            }
+
+                            ItemStack[] emptyItems = new ItemStack[size];
+                            manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
+                                    .thenRun(() -> {
+                                        sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
+                                                Placeholder.unparsed("player", finalName)));
+                                    });
+                        });
+                    }
+                });
     }
 
     @Override

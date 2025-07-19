@@ -10,6 +10,7 @@ messages:
 command:
   usage: "<red>Sử dụng: <gray>/<label> <usage>"
   player-not-found: "<red>Không tìm thấy người chơi '<player>' hoặc họ chưa có dữ liệu."
+  delete-usage: "<red>Sử dụng: <gray>/<label> delete <tên_người_chơi>"
   delete-success: "<green>Đã xóa thành công dữ liệu Rương Ender của <white><player></white>."
   loading-chest: "<yellow>Đang tải Rương Ender của <white><player></white>..."
 
