@@ -183,36 +183,33 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     UUID targetUUID = target.getUniqueId();
                     String finalName = target.getName() != null ? target.getName() : targetName;
 
+                    int size = 0;
                     if (target.isOnline()) {
-                        Player onlineTarget = target.getPlayer();
-                        int size = EnderChestUtils.getSize(Objects.requireNonNull(onlineTarget));
-
-                        ItemStack[] emptyItems = new ItemStack[size];
-                        manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
-                                .thenRun(() -> {
-                                    Scheduler.runEntityTask(onlineTarget, () -> {
-                                        manager.clearCacheFor(targetUUID);
-                                        onlineTarget.closeInventory();
-                                    });
-                                    sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
-                                            Placeholder.unparsed("player", finalName)));
-                                });
+                        size = EnderChestUtils.getSize(target.getPlayer());
                     } else {
-                        storage.loadEnderChestSize(targetUUID).thenAccept(size -> {
-                            if (size == 0) {
-                                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.player-not-found",
-                                        Placeholder.unparsed("player", targetName)));
-                                return;
-                            }
-
-                            ItemStack[] emptyItems = new ItemStack[size];
-                            manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
-                                    .thenRun(() -> {
-                                        sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
-                                                Placeholder.unparsed("player", finalName)));
-                                    });
-                        });
+                        size = storage.loadEnderChestSize(targetUUID).join();
                     }
+
+                    if (size == 0) {
+                        sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
+                                Placeholder.unparsed("player", finalName)));
+                        return;
+                    }
+
+                    ItemStack[] emptyItems = new ItemStack[size];
+
+                    manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
+                            .thenRun(() -> {
+                                if (target.isOnline()) {
+                                    Scheduler.runEntityTask(target.getPlayer(), () -> {
+                                        manager.reloadCacheFor(target.getPlayer());
+                                        target.getPlayer().closeInventory();
+                                    });
+                                }
+
+                                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
+                                        Placeholder.unparsed("player", finalName)));
+                            });
                 });
     }
 

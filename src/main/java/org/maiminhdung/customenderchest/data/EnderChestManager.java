@@ -122,15 +122,18 @@ public class EnderChestManager {
         return newInv;
     }
 
-    public void clearCacheFor(UUID uuid) {
-        Inventory inv = liveData.getIfPresent(uuid);
-        if (inv != null) {
-            // Clear the inventory contents
-            inv.clear();
+    public void reloadCacheFor(Player player) {
+        int size = EnderChestUtils.getSize(player);
+        if (size == 0) {
+            liveData.invalidate(player.getUniqueId());
+            return;
         }
-        // Clear the cache entry
-        liveData.invalidate(uuid);
-        debug.log("Cache cleared for UUID: " + uuid);
+
+        Component title = EnderChestUtils.getTitle(player);
+        Inventory newInv = Bukkit.createInventory(player, size, title);
+
+        liveData.put(player.getUniqueId(), newInv);
+        debug.log("Cache reloaded for player " + player.getName());
     }
 
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, Inventory inv) {
@@ -164,13 +167,12 @@ public class EnderChestManager {
             return CompletableFuture.completedFuture(null);
         }
 
-        debug.log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
+        this.debug.log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
 
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
                     UUID uuid = entry.getKey();
                     Inventory inv = entry.getValue();
-                    // Use Bukkit API to get player name. May return null if player is offline.
                     Player p = Bukkit.getPlayer(uuid);
                     String name = (p != null) ? p.getName() : null;
                     return saveEnderChest(uuid, name, inv);

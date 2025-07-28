@@ -43,16 +43,13 @@ public final class EnderChestUtils {
         // Get the raw string for the level name from lang file (e.g., "&aLevel 2" or "<green>Level 2")
         String levelNameString = locale.getRawString("levels." + levelIndex, "Level " + (levelIndex + 1));
 
-        // SỬA LỖI: Parse levelNameString thành một Component riêng biệt TRƯỚC
         Component levelComponent = Text.parse(levelNameString);
 
-        // Tạo placeholders bằng cách sử dụng Placeholder.component() an toàn hơn
         TagResolver placeholders = TagResolver.builder()
                 .resolver(Placeholder.component("player", p.displayName()))
-                .resolver(Placeholder.component("level", levelComponent)) // <-- THAY ĐỔI Ở ĐÂY
+                .resolver(Placeholder.component("level", levelComponent))
                 .build();
 
-        // Lấy mẫu tiêu đề từ file lang và áp dụng các placeholder đã được xử lý
         return locale.getComponent("titles.enderchest", placeholders);
     }
 
@@ -65,8 +62,7 @@ public final class EnderChestUtils {
     public static Component getAdminTitle(String targetName) {
         LocaleManager locale = EnderChest.getInstance().getLocaleManager();
 
-        // SỬA LỖI: Sử dụng Placeholder.component() với một Component text đơn giản để tương thích tối đa
-        TagResolver placeholder = Placeholder.component("player", Component.text(targetName)); // <-- THAY ĐỔI Ở ĐÂY
+        TagResolver placeholder = Placeholder.component("player", Component.text(targetName));
 
         return locale.getComponent("titles.admin_view", placeholder);
     }
