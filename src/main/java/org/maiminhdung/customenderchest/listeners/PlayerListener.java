@@ -1,5 +1,6 @@
 package org.maiminhdung.customenderchest.listeners;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
@@ -16,8 +17,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
+import org.w3c.dom.CDATASection;
 
 import java.util.UUID;
 
@@ -102,6 +105,13 @@ public class PlayerListener implements Listener {
         // Processing admin viewed chests
         if (manager.getAdminViewedChests().containsKey(closedInventory)) {
             UUID targetUUID = manager.getAdminViewedChests().remove(closedInventory);
+            DataLockManager dataLockManager = plugin.getDataLockManager();
+
+            if (dataLockManager.isLocked(targetUUID)) {
+                player.sendMessage(Component.text("Player data is busy, changes could not be saved."));
+                return;
+            }
+            dataLockManager.lock(targetUUID);
 
             if (targetUUID != null) {
                 debug.log("Admin " + player.getName() + " finished editing " + targetUUID + "'s chest. Saving data...");
@@ -127,6 +137,7 @@ public class PlayerListener implements Listener {
                     String targetName = Bukkit.getOfflinePlayer(targetUUID).getName();
                     Scheduler.runTaskAsync(() -> {
                         manager.saveEnderChest(targetUUID, targetName, closedInventory).join();
+                        dataLockManager.unlock(targetUUID);
                         debug.log("Data for offline player " + targetName + " saved successfully by admin.");
                     });
                 }

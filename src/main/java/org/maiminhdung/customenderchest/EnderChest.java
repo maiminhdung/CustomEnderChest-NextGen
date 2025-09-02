@@ -6,6 +6,7 @@ import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.listeners.PlayerListener;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.storage.StorageManager;
+import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import org.bukkit.command.PluginCommand;
@@ -21,6 +22,7 @@ public final class EnderChest extends JavaPlugin {
 	private SoundHandler soundHandler;
 	private StorageManager storageManager;
 	private DebugLogger debugLogger;
+    private DataLockManager dataLockManager;
 
 	@Override
 	public void onEnable() {
@@ -31,6 +33,7 @@ public final class EnderChest extends JavaPlugin {
 		this.debugLogger = new DebugLogger(this);
 		this.localeManager = new LocaleManager(this);
 		this.soundHandler = new SoundHandler(this);
+        this.dataLockManager = new DataLockManager();
 
 		// Initialize Database Manager with HikariCP
 		this.storageManager = new StorageManager(this);
@@ -79,6 +82,7 @@ public final class EnderChest extends JavaPlugin {
 	public EnderChestManager getEnderChestManager() {
 		return enderChestManager;
 	}
+
 	public LocaleManager getLocaleManager() {
 		return localeManager;
 	}
@@ -94,4 +98,8 @@ public final class EnderChest extends JavaPlugin {
 	public DebugLogger getDebugLogger() {
 		return debugLogger;
 	}
+
+    public DataLockManager getDataLockManager() {
+        return dataLockManager;
+    }
 }

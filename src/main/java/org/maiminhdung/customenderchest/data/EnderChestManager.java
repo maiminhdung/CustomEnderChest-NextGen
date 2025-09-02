@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
+import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
@@ -19,25 +20,28 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public class EnderChestManager {
 
     private final EnderChest plugin;
     private final SoundHandler soundHandler;
+    private final DataLockManager dataLockManager;
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
     private final Map<Inventory, UUID> adminViewedChests = new HashMap<>();
-    private final DebugLogger debug;
 
     public EnderChestManager(EnderChest plugin) {
         this.plugin = plugin;
         this.soundHandler = plugin.getSoundHandler();
-        this.debug = plugin.getDebugLogger();
+        this.dataLockManager = plugin.getDataLockManager();
 
+        // Use Guava Cache to automatically clean up data for players who have been offline for a while.
         this.liveData = CacheBuilder.newBuilder()
                 .expireAfterAccess(30, TimeUnit.MINUTES)
                 .build();
 
+        // Start the auto-save task to prevent data loss on server crash.
         long autoSaveIntervalTicks = plugin.config().getInt("storage.auto-save-interval-seconds", 300) * 20L;
         if (autoSaveIntervalTicks > 0) {
             this.autoSaveTask = Scheduler.runTaskTimerAsync(
@@ -51,41 +55,67 @@ public class EnderChestManager {
     }
 
     public void onPlayerJoin(Player player) {
-        debug.log("Player " + player.getName() + " is joining. Starting to load data...");
-        plugin.getStorageManager().getStorage().loadEnderChest(player.getUniqueId())
-                .thenAccept(items -> {
-                    Scheduler.runEntityTask(player, () -> {
-                        int size = EnderChestUtils.getSize(player);
-                        if (size == 0) {
-                            return;
-                        }
-                        Component title = EnderChestUtils.getTitle(player);
-                        Inventory inv = Bukkit.createInventory(player, size, title);
 
-                        if (items != null && items.length > 0) {
-                            if (items.length <= size) {
-                                inv.setContents(items);
-                            } else {
-                                for (int i = 0; i < size; i++) {
-                                    inv.setItem(i, items[i]);
-                                }
+        plugin.getDebugLogger().log("Player " + player.getName() + " is joining. Starting to load data...");
+
+        if (!dataLockManager.lock(player.getUniqueId())) {
+            plugin.getDebugLogger().log("Attempted to load data for " + player.getName() + ", but their data is currently locked. Will retry on next interaction.");
+            return;
+        }
+
+        plugin.getDebugLogger().log("Data lock acquired for " + player.getName() + ". Loading...");
+        Scheduler.supplyAsync(() -> {
+            try {
+                return plugin.getStorageManager().getStorage().loadEnderChest(player.getUniqueId()).join();
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to load data for " + player.getName(), e);
+                return null;
+            }
+        }).thenAccept(items -> {
+            Scheduler.runEntityTask(player, () -> {
+                try {
+                    int size = EnderChestUtils.getSize(player);
+                    if (size == 0) {
+                        plugin.getDebugLogger().log(player.getName() + " has no permission. Creating empty cache entry.");
+                    }
+                    Component title = EnderChestUtils.getTitle(player);
+                    // If size = 0 then create size inventory = 9.
+                    Inventory inv = Bukkit.createInventory(player, (size > 0 ? size : 9), title);
+
+                    if (items != null && size > 0) {
+                        if (items.length <= size) {
+                            inv.setContents(items);
+                        } else {
+                            for (int i = 0; i < size; i++) {
+                                inv.setItem(i, items[i]);
                             }
                         }
                         liveData.put(player.getUniqueId(), inv);
-                        debug.log("Data for " + player.getName() + " loaded into cache. Size: " + size);
-                    });
-                });
+                    }
+                } finally {
+                    dataLockManager.unlock(player.getUniqueId());
+                    plugin.getDebugLogger().log("Data lock released for " + player.getName());
+                }
+            });
+        });
     }
 
     public void onPlayerQuit(Player player) {
+        if (!dataLockManager.lock(player.getUniqueId())) {
+            plugin.getDebugLogger().log("Player " + player.getName() + " quit, but data is locked (likely being saved). Skipping quit-save.");
+            return;
+        }
+        plugin.getDebugLogger().log("Player " + player.getName() + " quit. Data lock acquired for saving.");
+
         Inventory inv = liveData.getIfPresent(player.getUniqueId());
         if (inv != null) {
-            debug.log("Player " + player.getName() + " is quitting. Saving data...");
-            saveEnderChest(player.getUniqueId(), player.getName(), inv)
-                    .thenRun(() -> {
-                        liveData.invalidate(player.getUniqueId());
-                        debug.log("Data for " + player.getName() + " saved and removed from cache.");
-                    });
+            saveEnderChest(player.getUniqueId(), player.getName(), inv).whenComplete((v, ex) -> {
+                liveData.invalidate(player.getUniqueId());
+                dataLockManager.unlock(player.getUniqueId());
+                plugin.getDebugLogger().log("Quit-save for " + player.getName() + " complete. Lock released.");
+            });
+        } else {
+            dataLockManager.unlock(player.getUniqueId());
         }
     }
 
@@ -133,7 +163,7 @@ public class EnderChestManager {
         Inventory newInv = Bukkit.createInventory(player, size, title);
 
         liveData.put(player.getUniqueId(), newInv);
-        debug.log("Cache reloaded for player " + player.getName());
+        plugin.getDebugLogger().log("Cache reloaded for player " + player.getName());
     }
 
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, Inventory inv) {
@@ -167,7 +197,7 @@ public class EnderChestManager {
             return CompletableFuture.completedFuture(null);
         }
 
-        this.debug.log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
+        this.plugin.getDebugLogger().log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
 
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {

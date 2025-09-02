@@ -6,6 +6,7 @@ import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.data.LegacyImporter;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
+import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -171,7 +172,6 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
 
         String targetName = args[1];
-
         Scheduler.supplyAsync(() -> Bukkit.getOfflinePlayer(targetName))
                 .thenAccept(target -> {
                     if (!target.hasPlayedBefore()) {
@@ -180,8 +180,16 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                         return;
                     }
 
-                    UUID targetUUID = target.getUniqueId();
+                    UUID targetUUID = target.getUniqueId ();
                     String finalName = target.getName() != null ? target.getName() : targetName;
+                    DataLockManager dataLockManager = plugin.getDataLockManager();
+
+                    if (dataLockManager.isLocked(targetUUID)) {
+                        sender.sendMessage(Component.text("Player data is currently busy. Please try again in a moment."));
+                        return;
+                    }
+                    dataLockManager.lock(targetUUID);
+
 
                     int size = 0;
                     if (target.isOnline()) {
@@ -207,9 +215,11 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                                     });
                                 }
 
+                                dataLockManager.unlock(targetUUID);
                                 sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
                                         Placeholder.unparsed("player", finalName)));
                             });
+
                 });
     }
 
