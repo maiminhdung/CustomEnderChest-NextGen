@@ -1,5 +1,6 @@
 package org.maiminhdung.customenderchest;
 
+import lombok.Getter;
 import org.maiminhdung.customenderchest.bstats.Metrics;
 import org.maiminhdung.customenderchest.commands.EnderChestCommand;
 import org.maiminhdung.customenderchest.data.EnderChestManager;
@@ -14,14 +15,21 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EnderChest extends JavaPlugin {
 
-	private static EnderChest instance;
+	@Getter
+    private static EnderChest instance;
 
 	private ConfigHandler configHandler;
-	private EnderChestManager enderChestManager;
-	private LocaleManager localeManager;
-	private SoundHandler soundHandler;
-	private StorageManager storageManager;
-	private DebugLogger debugLogger;
+	@Getter
+    private EnderChestManager enderChestManager;
+	@Getter
+    private LocaleManager localeManager;
+	@Getter
+    private SoundHandler soundHandler;
+	@Getter
+    private StorageManager storageManager;
+	@Getter
+    private DebugLogger debugLogger;
+    @Getter
     private DataLockManager dataLockManager;
 
 	@Override
@@ -71,35 +79,8 @@ public final class EnderChest extends JavaPlugin {
 		this.getLogger().info("CustomEnderChest has been disabled.");
 	}
 
-	public static EnderChest getInstance() {
-		return instance;
-	}
-
-	public ConfigHandler config() {
+    public ConfigHandler config() {
 		return configHandler;
 	}
 
-	public EnderChestManager getEnderChestManager() {
-		return enderChestManager;
-	}
-
-	public LocaleManager getLocaleManager() {
-		return localeManager;
-	}
-
-	public SoundHandler getSoundHandler() {
-		return soundHandler;
-	}
-
-	public StorageManager getStorageManager() {
-		return storageManager;
-	}
-
-	public DebugLogger getDebugLogger() {
-		return debugLogger;
-	}
-
-    public DataLockManager getDataLockManager() {
-        return dataLockManager;
-    }
 }

@@ -1,8 +1,8 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.0.3-beta
+version: 2.0.4-beta
 author: maiminhdung, brunyman
-website: www.minhdung.fun
+website: https://maiminhdung.dev/
 load: STARTUP
 api-version: 1.20
 folia-supported: true

@@ -2,11 +2,11 @@ package org.maiminhdung.customenderchest.data;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import lombok.Getter;
 import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
-import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import net.kyori.adventure.text.Component;
@@ -29,6 +29,7 @@ public class EnderChestManager {
     private final DataLockManager dataLockManager;
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
+    @Getter
     private final Map<Inventory, UUID> adminViewedChests = new HashMap<>();
 
     public EnderChestManager(EnderChest plugin) {
@@ -210,9 +211,5 @@ public class EnderChestManager {
                 .toArray(CompletableFuture[]::new);
 
         return CompletableFuture.allOf(futures);
-    }
-
-    public Map<Inventory, UUID> getAdminViewedChests() {
-        return adminViewedChests;
     }
 }

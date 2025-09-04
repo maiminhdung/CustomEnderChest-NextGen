@@ -20,7 +20,6 @@ import org.bukkit.inventory.Inventory;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
-import org.w3c.dom.CDATASection;
 
 import java.util.UUID;
 

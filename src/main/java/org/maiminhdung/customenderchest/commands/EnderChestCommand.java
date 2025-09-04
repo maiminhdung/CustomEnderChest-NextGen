@@ -193,7 +193,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
                     int size = 0;
                     if (target.isOnline()) {
-                        size = EnderChestUtils.getSize(target.getPlayer());
+                        size = EnderChestUtils.getSize(Objects.requireNonNull(target.getPlayer()));
                     } else {
                         size = storage.loadEnderChestSize(targetUUID).join();
                     }
@@ -211,7 +211,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                                 if (target.isOnline()) {
                                     Scheduler.runEntityTask(target.getPlayer(), () -> {
                                         manager.reloadCacheFor(target.getPlayer());
-                                        target.getPlayer().closeInventory();
+                                        Objects.requireNonNull(target.getPlayer()).closeInventory();
                                     });
                                 }
 
