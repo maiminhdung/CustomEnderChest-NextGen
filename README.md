@@ -12,6 +12,7 @@ A high-performance, fully asynchronous, and highly configurable Ender Chest plug
 ## Overview
 
 Next-Gen Custom Ender Chest is a complete rewrite of the classic permission-based Ender Chest concept, engineered from the ground up for performance, flexibility, and compatibility with modern server software. It provides a lag-free experience by handling all data operations asynchronously and offers a robust, multi-backend storage system to fit any server's needs.
+Join support discord: https://discord.gg/sGZ2QSMDEg
 
 ## ⭐ Key Features
 
