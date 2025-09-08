@@ -1,10 +1,6 @@
 package org.maiminhdung.customenderchest;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.configuration.file.FileConfiguration;
-
-import java.util.List;
 
 public class ConfigHandler {
 
@@ -42,18 +38,4 @@ public class ConfigHandler {
         return config.getBoolean(path);
     }
 
-    public List<String> getStringList(String path) {
-        return config.getStringList(path);
-    }
-
-    public Component getMessage(String path) {
-        String message = config.getString(path, "<red>Message not found: " + path + "</red>");
-        return MiniMessage.miniMessage().deserialize(message);
-    }
-
-    public Component getPrefixedMessage(String path) {
-        String prefix = getString("messages.prefix", "<dark_purple>[<light_purple>EnderChest<dark_purple>] ");
-        String message = config.getString(path, "<red>Message not found: " + path + "</red>");
-        return MiniMessage.miniMessage().deserialize(prefix + message);
-    }
 }

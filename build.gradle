@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.maiminhdung'
-version = '2.0.4-beta'
+version = '2.0.5-beta'
 
 repositories {
     mavenCentral()
@@ -24,11 +24,11 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
     implementation("org.bstats:bstats-bukkit:3.1.0")
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("com.h2database:h2:2.3.232")
 }
 
@@ -39,7 +39,7 @@ tasks {
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)
-        archiveVersion.set("2.0.4-beta")
+        archiveVersion.set("2.0.5-beta")
     }
 
     build {

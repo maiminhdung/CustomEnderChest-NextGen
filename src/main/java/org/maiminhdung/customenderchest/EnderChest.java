@@ -60,23 +60,37 @@ public final class EnderChest extends JavaPlugin {
 		}
 
 		// Bstats Metrics
-		setupBtatsMetrics();
+        if (config().getBoolean("general.bstats-metrics")) {
+            setupBtatsMetrics();
+            this.getLogger().info("bStats Metrics are enabled. Thank you for your support!");
+        } else {
+            this.getLogger().info("bStats Metrics are disabled.");
+        }
 
-		this.getLogger().info("CustomEnderChest has been enabled successfully!");
+
+        this.getLogger().info("CustomEnderChest has been enabled successfully!");
 	}
 
 	private void setupBtatsMetrics() {
 		Metrics metrics = new Metrics(this, 26551);
+
+        metrics.addCustomChart(new Metrics.SimplePie("storage_type", () ->
+                config().getString("storage.type", "FILE").toLowerCase())
+        );
 	}
 
 	@Override
 	public void onDisable() {
 		// Shutdown manager tasks and save all data
 		if (this.enderChestManager != null) {
-			this.enderChestManager.shutdown();
-		}
-		// Close database connections
-		this.getLogger().info("CustomEnderChest has been disabled.");
+            this.enderChestManager.shutdown();
+        }
+        // Close database connection pool
+        if (this.storageManager != null) {
+            this.storageManager.close();
+        }
+        
+        this.getLogger().info("CustomEnderChest has been disabled.");
 	}
 
     public ConfigHandler config() {

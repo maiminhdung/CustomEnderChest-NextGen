@@ -12,6 +12,9 @@ general:
   locale: "en"
   # Set to true to enable debug logging. Useful for troubleshooting.
   debug: false
+  # Set to true to enable bStats metrics, which helps the developer understand how the plugin is used.
+  # Set to false to disable it.
+  bstats-metrics: true
 
 # Database settings
 storage:
@@ -68,7 +71,6 @@ sounds:
   # You can find valid sound names here:
   # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
   # (Use the names from the Enum column)
-
   open:
     name: "BLOCK_ENDER_CHEST_OPEN"
     volume: 1.0

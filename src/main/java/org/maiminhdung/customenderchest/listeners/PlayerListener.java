@@ -101,7 +101,6 @@ public class PlayerListener implements Listener {
         EnderChestManager manager = plugin.getEnderChestManager();
         Inventory closedInventory = event.getInventory();
 
-        // Processing admin viewed chests
         if (manager.getAdminViewedChests().containsKey(closedInventory)) {
             UUID targetUUID = manager.getAdminViewedChests().remove(closedInventory);
             DataLockManager dataLockManager = plugin.getDataLockManager();
@@ -110,38 +109,46 @@ public class PlayerListener implements Listener {
                 player.sendMessage(Component.text("Player data is busy, changes could not be saved."));
                 return;
             }
-            dataLockManager.lock(targetUUID);
+            dataLockManager.lock(targetUUID); // Lock data before processing
 
-            if (targetUUID != null) {
+            try {
                 debug.log("Admin " + player.getName() + " finished editing " + targetUUID + "'s chest. Saving data...");
 
                 Player targetPlayer = Bukkit.getPlayer(targetUUID);
+                String targetName;
 
                 if (targetPlayer != null && targetPlayer.isOnline()) {
                     // === ONLINE PLAYER - Sync and save ==
+                    targetName = targetPlayer.getName();
                     Inventory targetLiveInv = manager.getLoadedEnderChest(targetUUID);
                     if (targetLiveInv != null) {
                         targetLiveInv.setContents(closedInventory.getContents());
-                        debug.log("Final sync completed for online player: " + targetPlayer.getName());
+                        debug.log("Final sync completed for online player: " + targetName);
                     }
-
-                    // Save to database async
-                    String targetName = targetPlayer.getName();
-                    Scheduler.runTaskAsync(() -> {
-                        manager.saveEnderChest(targetUUID, targetName, closedInventory).join();
-                        debug.log("Data for online player " + targetName + " saved successfully by admin.");
-                    });
                 } else {
-                    // === OFFLINE PLAYER - Only save data to database ===
-                    String targetName = Bukkit.getOfflinePlayer(targetUUID).getName();
-                    Scheduler.runTaskAsync(() -> {
-                        manager.saveEnderChest(targetUUID, targetName, closedInventory).join();
-                        dataLockManager.unlock(targetUUID);
-                        debug.log("Data for offline player " + targetName + " saved successfully by admin.");
-                    });
+                    // === OFFLINE PLAYER - Prepare name for saving ===
+                    targetName = Bukkit.getOfflinePlayer(targetUUID).getName();
                 }
 
+                // Save to database async
+                String finalTargetName = targetName;
+                Scheduler.runTaskAsync(() -> {
+                    try {
+                        manager.saveEnderChest(targetUUID, finalTargetName, closedInventory).join();
+                        debug.log("Data for player " + finalTargetName + " saved successfully by admin.");
+                    } finally {
+                        // Unlock in a finally block to guarantee it's called
+                        dataLockManager.unlock(targetUUID);
+                    }
+                });
+
                 plugin.getSoundHandler().playSound(player, "close");
+
+            } catch (Exception e) {
+                // In case of any unexpected error, make sure to unlock
+                dataLockManager.unlock(targetUUID);
+                player.sendMessage(Component.text("An error occurred while saving data. Please check console."));
+                e.printStackTrace();
             }
             return;
         }
