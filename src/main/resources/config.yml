@@ -63,11 +63,20 @@ enderchest-options:
   # Useful if you only want players to open the chest via command.
   disable-enderchest-click: false
 
+# Default settings for new players
+default-player:
+  # Enable this to give new players a default chest size.
+  # This allows new players to use the Ender Chest block without needing a specific permission.
+  enabled: true
+  # The default chest size (number of slots, must be a multiple of 9, max 54).
+  # 27 equals 3 rows, the same as a vanilla Ender Chest.
+  # Default permission level is CustomEnderChest.level.3 (27 slots).
+  size: 27
+
 # Sound customization
 sounds:
   # Disable all plugin sounds if set to `true`.
   disable-all: false
-
   # You can find valid sound names here:
   # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
   # (Use the names from the Enum column)

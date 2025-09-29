@@ -7,6 +7,7 @@ import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.data.LegacyImporter;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
+import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -42,12 +43,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            if (sender instanceof Player p) {
-                plugin.getEnderChestManager().openEnderChest(p);
-            } else {
-                sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
-            }
-            return true;
+            return handleDefaultCommand(sender);
         }
 
         String subCommand = args[0].toLowerCase();
@@ -65,12 +61,16 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 handleDelete(sender, args, label);
                 break;
             default:
-                if (sender instanceof Player p) {
-                    plugin.getEnderChestManager().openEnderChest(p);
-                } else {
-                    sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
-                }
-                break;
+                return handleDefaultCommand(sender);
+        }
+        return true;
+    }
+
+    private boolean handleDefaultCommand(CommandSender sender) {
+        if (sender instanceof Player p) {
+            plugin.getEnderChestManager().openEnderChest(p);
+        } else {
+            sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
         }
         return true;
     }
@@ -80,18 +80,28 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
             return;
         }
+
         if (args.length == 1) {
             plugin.getEnderChestManager().openEnderChest(p);
-        } else {
+        } else if (args.length >= 2) {
             if (!p.hasPermission("CustomEnderChest.command.open.other")) {
                 p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
                 return;
             }
-            openOtherPlayerChest(p, args[1]);
+            String targetName = args[1].trim();
+            if (targetName.isEmpty()) {
+                p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.invalid-player"));
+                return;
+            }
+            openOtherPlayerChest(p, targetName);
         }
     }
 
     private void openOtherPlayerChest(Player admin, String targetName) {
+        if (admin == null || !admin.isOnline()) {
+            return;
+        }
+
         admin.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.loading-chest", Placeholder.unparsed("player", targetName)));
 
         Player targetOnline = Bukkit.getPlayerExact(targetName);
@@ -183,9 +193,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     UUID targetUUID = target.getUniqueId ();
                     String finalName = target.getName() != null ? target.getName() : targetName;
                     DataLockManager dataLockManager = plugin.getDataLockManager();
+                    LocaleManager localeManager = plugin.getLocaleManager();
 
                     if (dataLockManager.isLocked(targetUUID)) {
-                        sender.sendMessage(Component.text("Player data is currently busy. Please try again in a moment."));
+                        sender.sendMessage(localeManager.getPrefixedComponent("messages.data-busy"));
                         return;
                     }
                     dataLockManager.lock(targetUUID);

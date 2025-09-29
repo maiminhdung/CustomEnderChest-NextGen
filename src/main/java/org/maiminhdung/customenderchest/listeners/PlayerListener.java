@@ -1,6 +1,5 @@
 package org.maiminhdung.customenderchest.listeners;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
@@ -17,6 +16,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
@@ -45,30 +45,49 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEnderChestInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) {
-            return;
-        }
-
-        if (event.getClickedBlock().getType() != Material.ENDER_CHEST) {
-            return;
-        }
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) return;
+        if (event.getClickedBlock().getType() != Material.ENDER_CHEST) return;
 
         event.setCancelled(true);
         Player player = event.getPlayer();
 
-        int size = EnderChestUtils.getSize(player);
-        if (size == 0) {
-            // If the player has no custom ender chest size, do nothing
-            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
-            plugin.getSoundHandler().playSound(player, "fail");
+        if (player == null || !player.isOnline()) {
             return;
         }
 
-        // If the player has a custom ender chest size, open it
+        // Let the EnderChestManager handle the permission check logic now
         plugin.getEnderChestManager().openEnderChest(player);
     }
 
-    // NEW: Real-time sync when admin click inventory
+    // Handle inventory clicks to enforce slot restrictions and admin sync
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.isCancelled()) return;
+
+        EnderChestManager manager = plugin.getEnderChestManager();
+        Inventory clickedInv = event.getInventory();
+
+        if (clickedInv == null) return;
+
+        Inventory cachedInv = manager.getLoadedEnderChest(player.getUniqueId());
+
+        if (cachedInv != null && clickedInv.equals(cachedInv)) {
+            int slot = event.getRawSlot();
+            int permissionSize = EnderChestUtils.getSize(player);
+
+            if (slot >= permissionSize && slot < clickedInv.getSize()) {
+                event.setCancelled(true);
+                player.sendMessage(plugin.getLocaleManager().getComponent("messages.slot-locked"));
+                plugin.getSoundHandler().playSound(player, "fail");
+            }
+        }
+
+        // Logic for admin sync can go here, but separated for clarity
+        onAdminInventoryClick(event);
+    }
+
+    // Separate method to handle admin inventory click syncing
     @EventHandler(priority = EventPriority.MONITOR)
     public void onAdminInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player admin)) return;
@@ -97,16 +116,26 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
+        if (!player.isOnline()) return;
 
         EnderChestManager manager = plugin.getEnderChestManager();
         Inventory closedInventory = event.getInventory();
 
+        if (closedInventory == null) return;
+
+        LocaleManager localeManager = plugin.getLocaleManager();
+
+        manager.getOpenInventories().remove(player.getUniqueId());
+
         if (manager.getAdminViewedChests().containsKey(closedInventory)) {
             UUID targetUUID = manager.getAdminViewedChests().remove(closedInventory);
+
+            if (targetUUID == null) return;
+
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
             if (dataLockManager.isLocked(targetUUID)) {
-                player.sendMessage(Component.text("Player data is busy, changes could not be saved."));
+                player.sendMessage(localeManager.getPrefixedComponent("messages.data-still-loading"));
                 return;
             }
             dataLockManager.lock(targetUUID); // Lock data before processing
@@ -147,7 +176,7 @@ public class PlayerListener implements Listener {
             } catch (Exception e) {
                 // In case of any unexpected error, make sure to unlock
                 dataLockManager.unlock(targetUUID);
-                player.sendMessage(Component.text("An error occurred while saving data. Please check console."));
+                player.sendMessage(localeManager.getPrefixedComponent("messages.save-error"));
                 e.printStackTrace();
             }
             return;

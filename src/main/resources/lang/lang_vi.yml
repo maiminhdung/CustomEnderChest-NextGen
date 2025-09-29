@@ -6,6 +6,9 @@ messages:
   players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
   reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
   data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
+  data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
+  slot-locked: "<red>Ô này đã bị khóa! Bạn cần cấp độ Ender Chest cao hơn.</red>"
+  save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
 
 command:
   usage: "<red>Sử dụng: <gray>/<label> <usage>"
@@ -15,23 +18,28 @@ command:
   loading-chest: "<yellow>Đang tải Rương Ender của <white><player></white>..."
 
 titles:
-  # Biến thay thế: <player>, <level>
   enderchest: "<level> - <light_purple>Rương của <player>"
-  # Biến thay thế: <player>
   admin_view: "<dark_red>Admin Xem: <white><player>"
 
 # Tên cấp độ được dùng trong biến <level>
 levels:
-  '0': "&fCấp 1"
-  '1': "&aCấp 2"
-  '2': "&bCấp 3"
-  '3': "&eCấp 4"
-  '4': "&6Cấp 5"
-  '5': "&d&lCấp 6"
+  '0': "&fCấp 1" # 1 hàng (9 ô)
+  '1': "&aCấp 2" # 2 hàng (18 ô)
+  '2': "&bCấp 3" # 3 hàng (27 ô)
+  '3': "&eCấp 4" # 4 hàng (36 ô)
+  '4': "&6Cấp 5" # 5 hàng (45 ô)
+  '5': "&d&lCấp 6" # 6 hàng (54 ô)
 
 import:
   started: "<green>Bắt đầu nhập dữ liệu từ file cũ. Quá trình này có thể mất một lúc..."
   progress: "<gray>Tiến trình nhập: Đã xử lý <yellow><processed>/<total></yellow> file."
   no-folder: "<red>Không tìm thấy thư mục 'PlayerData' cũ để nhập dữ liệu."
-  complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ, bỏ qua <gray><skipped></gray>."
+  complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ."
   error: "<red>Không thể nhập file <yellow><file></yellow>. Vui lòng kiểm tra console."
+
+items:
+  locked-barrier-name: "<red>Ô Bị Khóa</red>"
+  locked-item-lore:
+    - ""
+    - "<red>Ô BỊ KHÓA</red>"
+    - "<gray>Nâng cấp Rương Ender để truy cập.</gray>"

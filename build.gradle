@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.maiminhdung'
-version = '2.0.5-beta'
+version = '2.0.6-beta'
 
 repositories {
     mavenCentral()
@@ -39,7 +39,7 @@ tasks {
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)
-        archiveVersion.set("2.0.5-beta")
+        archiveVersion.set("2.0.6-test")
     }
 
     build {
@@ -50,7 +50,7 @@ tasks {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.
         // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion("1.21")
+        minecraftVersion("1.20")
     }
 }
 
@@ -75,7 +75,7 @@ tasks.withType(JavaCompile).configureEach {
 processResources {
     def props = [version: version]
     inputs.properties props
-    filteringCharset 'UTF-8'
+    filteringCharset = 'UTF-8'
     filesMatching('plugin.yml') {
         expand props
     }

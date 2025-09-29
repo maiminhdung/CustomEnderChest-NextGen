@@ -1,5 +1,6 @@
 package org.maiminhdung.customenderchest.locale;
 
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.utils.Text;
 
@@ -12,6 +13,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LocaleManager {
 
@@ -60,8 +63,14 @@ public class LocaleManager {
         return Text.parse(message, placeholders);
     }
 
+    public List<Component> getComponentList(String path) {
+        return localeConfig.getStringList(path).stream()
+                .map(line -> MiniMessage.miniMessage().deserialize(line))
+                .collect(Collectors.toList());
+    }
+
     public Component getPrefixedComponent(String key, TagResolver... placeholders) {
-        Component prefix = getComponent("messages.prefix");
+        Component prefix = getComponent("prefix");
         return prefix.append(getComponent(key, placeholders));
     }
 }

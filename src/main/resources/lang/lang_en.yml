@@ -4,6 +4,9 @@ messages:
   players-only: "<red>This command can only be run by a player.</red>"
   reload-success: "<green>Configuration and language files have been reloaded.</green>"
   data-still-loading: "<yellow>Your data is still loading, please wait a moment...</yellow>"
+  data-busy: "<red>Player data is busy. Please try again shortly.</red>"
+  slot-locked: "<red>This slot is locked! You need a higher Ender Chest level.</red>"
+  save-error: "<red>An error occurred while saving data. Please check the console.</red>"
 
 command:
   usage: "<red>Usage: <gray>/<label> <usage>"
@@ -13,17 +16,16 @@ command:
   loading-chest: "<yellow>Loading <white><player>'s</white> Ender Chest..."
 
 titles:
-  # Placeholders: <player>, <level>
   enderchest: "<level> - <light_purple><player>'s Chest"
   admin_view: "<dark_red>Admin View: <white><player>"
 
 levels:
-  '0': "&fLevel 1"
-  '1': "&aLevel 2"
-  '2': "&bLevel 3"
-  '3': "&eLevel 4"
-  '4': "&6Level 5"
-  '5': "&d&lLevel 6"
+  '0': "&fLevel 1" # 1 row (9 slots)
+  '1': "&aLevel 2" # 2 rows (18 slots)
+  '2': "&bLevel 3" # 3 rows (27 slots)
+  '3': "&eLevel 4" # 4 rows (36 slots)
+  '4': "&6Level 5" # 5 rows (45 slots)
+  '5': "&d&lLevel 6" # 6 rows (54 slots)
 
 import:
   started: "<green>Starting import from legacy flat files. This may take a while..."
@@ -31,3 +33,10 @@ import:
   no-folder: "<red>Could not find the old 'PlayerData' folder to import from."
   complete: "<green>Data import complete! <white><imported></white> legacy profiles imported."
   error: "<red>Failed to import file <yellow><file></yellow>. See console for details."
+
+items:
+  locked-barrier-name: "<red>Locked Slot</red>"
+  locked-item-lore:
+    - ""
+    - "<red>LOCKED SLOT</red>"
+    - "<gray>Upgrade your Ender Chest to access.</gray>"

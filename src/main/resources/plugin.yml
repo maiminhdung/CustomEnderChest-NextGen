@@ -1,6 +1,6 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.0.5-beta
+version: 2.0.6-test
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP
@@ -32,7 +32,7 @@ permissions:
         default: op
     CustomEnderChest.command.open.self:
         description: Allows opening your own chest with /cec open.
-        default: true
+        default: false
     CustomEnderChest.command.open.other:
             description: Allows opening other players' chests.
             default: op

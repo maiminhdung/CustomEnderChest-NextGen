@@ -5,18 +5,17 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-public final class Text {
-
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand();
+public class Text {
 
     public static Component parse(String text, TagResolver... placeholders) {
         if (text == null || text.isEmpty()) {
             return Component.empty();
         }
-
-        Component component = MINI_MESSAGE.deserialize(text, placeholders);
-
-        return LEGACY_SERIALIZER.deserialize(LEGACY_SERIALIZER.serialize(component));
+        // First, translate legacy '&' codes into MiniMessage tags
+        String legacyTranslated = LegacyComponentSerializer.legacyAmpersand().serialize(
+                LegacyComponentSerializer.legacyAmpersand().deserialize(text)
+        );
+        // Then, parse the result with MiniMessage
+        return MiniMessage.miniMessage().deserialize(legacyTranslated, placeholders);
     }
 }

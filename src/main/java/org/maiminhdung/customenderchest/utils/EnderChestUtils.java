@@ -1,69 +1,79 @@
 package org.maiminhdung.customenderchest.utils;
 
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.maiminhdung.customenderchest.EnderChest;
-import org.maiminhdung.customenderchest.locale.LocaleManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.entity.Player;
+import org.maiminhdung.customenderchest.locale.LocaleManager;
 
-public final class EnderChestUtils {
+public class EnderChestUtils {
 
-    // Private constructor to prevent instantiation
-    private EnderChestUtils() {}
+    private static final EnderChest plugin = EnderChest.getInstance();
 
-    /**
-     * Gets the inventory size based on the player's permission.
-     * The logic checks from highest to lowest and returns immediately.
-     * @param p The player.
-     * @return The size of the Ender Chest (9, 18, 27, 36, 45, 54), or 0 if no permission.
-     */
-    public static int getSize(Player p) {
-        if (p.hasPermission("CustomEnderChest.level.5")) return 54;
-        if (p.hasPermission("CustomEnderChest.level.4")) return 45;
-        if (p.hasPermission("CustomEnderChest.level.3")) return 36;
-        if (p.hasPermission("CustomEnderChest.level.2")) return 27;
-        if (p.hasPermission("CustomEnderChest.level.1")) return 18;
-        if (p.hasPermission("CustomEnderChest.level.0")) return 9;
-        return 0; // No permission
+    public static int getSize(Player player) {
+        if (player == null) {
+            return 0;
+        }
+
+        if (player.hasPermission("CustomEnderChest.level.*")) {
+            return 54;
+        }
+
+        // Check specific level permissions in descending order (only valid levels)
+        int[] validLevels = {54, 45, 36, 27, 18, 9}; // Common enderchest sizes (6, 5, 4, 3, 2, 1 rows)
+        for (int level : validLevels) {
+            if (player.hasPermission("CustomEnderChest.level." + (level / 9 - 1))) {
+                return level;
+            }
+        }
+
+        // Check for numbered permissions (0-5)
+        for (int i = 5; i >= 0; i--) {
+            if (player.hasPermission("CustomEnderChest.level." + i)) {
+                return (i + 1) * 9; // Convert level index to slot count
+            }
+        }
+
+        // Check for default player size from config
+        if (plugin.config().getBoolean("default-player.enabled")) {
+            int defaultSize = plugin.config().getInt("default-player.size", 0);
+            if (defaultSize > 0 && defaultSize % 9 == 0 && defaultSize <= 54) {
+                return defaultSize;
+            }
+        }
+
+        return 0; // Return 0 if no permissions are found
     }
 
-    /**
-     * Gets the dynamic, translatable title for a player's Ender Chest.
-     * This method now uses the LocaleManager for full customization.
-     *
-     * @param p The player.
-     * @return The formatted Component title.
-     */
-    public static Component getTitle(Player p) {
-        LocaleManager locale = EnderChest.getInstance().getLocaleManager();
-        int levelIndex = getSize(p) / 9 - 1; // Converts size (9,18..) to level index (0,1..)
-        if (levelIndex < 0) levelIndex = 0;
+    public static Component getTitle(Player player) {
+        if (player == null) {
+            return Component.text("Invalid Player");
+        }
 
-        // Get the raw string for the level name from lang file (e.g., "&aLevel 2" or "<green>Level 2")
-        String levelNameString = locale.getRawString("levels." + levelIndex, "Level " + (levelIndex + 1));
+        int size = getSize(player);
+        // Size 9 = 1 row, Size 18 = 2 rows -> index 1
+        int levelIndex = (size > 0) ? (size / 9) - 1 : 0;
 
-        Component levelComponent = Text.parse(levelNameString);
+        String levelNameRaw = plugin.getLocaleManager().getRawString("levels." + levelIndex, "Level " + (levelIndex + 1));
+        Component levelComponent = Text.parse(levelNameRaw);
 
-        TagResolver placeholders = TagResolver.builder()
-                .resolver(Placeholder.component("player", p.displayName()))
-                .resolver(Placeholder.component("level", levelComponent))
-                .build();
+        String titleFormat = plugin.getLocaleManager().getRawString("titles.enderchest", "<level> - <light_purple><player>'s Chest");
 
-        return locale.getComponent("titles.enderchest", placeholders);
+        return Text.parse(titleFormat,
+                Placeholder.component("level", levelComponent),
+                Placeholder.unparsed("player", player.getName())
+        );
     }
 
-    /**
-     * Gets a generic title for an Ender Chest opened by an admin for another player.
-     *
-     * @param targetName The name of the target player.
-     * @return The formatted Component title.
-     */
     public static Component getAdminTitle(String targetName) {
-        LocaleManager locale = EnderChest.getInstance().getLocaleManager();
+        if (targetName == null || targetName.trim().isEmpty()) {
+            targetName = "Unknown Player";
+        }
 
-        TagResolver placeholder = Placeholder.component("player", Component.text(targetName));
-
-        return locale.getComponent("titles.admin_view", placeholder);
+        String titleFormat = plugin.getLocaleManager().getRawString("titles.admin_view", "<dark_red>Admin View: <player>");
+        return Text.parse(titleFormat,
+                Placeholder.unparsed("player", targetName));
     }
 }
