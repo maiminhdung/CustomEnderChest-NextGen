@@ -5,10 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
@@ -34,17 +31,16 @@ public class EnderChestManager {
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
     private final Scheduler.Task inventoryTrackerTask;
-    private final NamespacedKey lockedItemKey;
 
     @Getter private final Map<Inventory, UUID> adminViewedChests = new ConcurrentHashMap<>();
     @Getter private final Map<UUID, Inventory> openInventories = new ConcurrentHashMap<>();
     private final Set<UUID> resizingPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> notifiedOverflowPlayers = ConcurrentHashMap.newKeySet();
 
     public EnderChestManager(EnderChest plugin) {
         this.plugin = plugin;
         this.soundHandler = plugin.getSoundHandler();
         this.dataLockManager = plugin.getDataLockManager();
-        this.lockedItemKey = new NamespacedKey(plugin, "locked_item_tag");
 
         // Use Guava Cache to automatically clean up data for players who have been offline for a while.
         this.liveData = CacheBuilder.newBuilder()
@@ -63,7 +59,7 @@ public class EnderChestManager {
             this.autoSaveTask = null;
         }
         // Start the inventory tracker task
-        this.inventoryTrackerTask = Scheduler.runTaskTimer(this::checkOpenInventories, 20L, 20L); // Run every second
+        this.inventoryTrackerTask = Scheduler.runTaskTimer(this::checkOpenInventories, 20L, 20L);
     }
     // Load player data when they join the server.
     public void onPlayerJoin(Player player) {
@@ -102,7 +98,33 @@ public class EnderChestManager {
                             int size = EnderChestUtils.getSize(player);
                             Component title = EnderChestUtils.getTitle(player);
                             Inventory inv = Bukkit.createInventory(player, (size > 0 ? size : 9), title);
-                            if (items != null && size > 0) {
+
+                            // Check if items is empty array (indicating deserialization failure)
+                            boolean hadIncompatibleData = false;
+                            if (items != null && items.length == 0) {
+                                // Check if player actually had data in database
+                                plugin.getStorageManager().getStorage().loadEnderChestSize(player.getUniqueId())
+                                    .thenAccept(savedSize -> {
+                                        if (savedSize > 0) {
+                                            // Player had data but it couldn't be loaded (version incompatibility)
+                                            Scheduler.runEntityTask(player, () -> {
+                                                LocaleManager locale = plugin.getLocaleManager();
+                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-data-incompatible"));
+                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-data-cleared"));
+                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-contact-admin"));
+                                            });
+                                        }
+                                    });
+                            } else if (items != null && size > 0) {
+                                // Check if any items were cleared during deserialization
+                                boolean hasNullItems = false;
+                                for (ItemStack item : items) {
+                                    if (item == null) {
+                                        hasNullItems = true;
+                                        break;
+                                    }
+                                }
+
                                 if (items.length <= size) {
                                     inv.setContents(items);
                                 } else {
@@ -191,11 +213,8 @@ public class EnderChestManager {
         for (int i = contents.length - 1; i >= 0; i--) {
             ItemStack item = contents[i];
             if (item != null && item.getType() != Material.AIR) {
-                ItemMeta meta = item.getItemMeta();
-                if (item.getType() != Material.BARRIER && (meta == null || !meta.getPersistentDataContainer().has(lockedItemKey))) {
-                    lastItemIndex = i;
-                    break;
-                }
+                lastItemIndex = i;
+                break;
             }
         }
 
@@ -215,181 +234,107 @@ public class EnderChestManager {
         soundHandler.playSound(player, "open");
     }
 
-    // Resize the inventory while preserving existing items.
+    // Resize the inventory - Use overflow storage for items beyond permission
     private Inventory resizeInventory(Player player, Inventory oldInv, int newSize) {
         plugin.getDebugLogger().log("Resizing " + player.getName() + "'s inventory. Old: " + oldInv.getSize() + ", New Size: " + newSize);
         ItemStack[] oldContents = oldInv.getContents();
 
-        // Debug: Log all items in old inventory
-        plugin.getDebugLogger().log("Old inventory contents:");
+        Component title = EnderChestUtils.getTitle(player);
+        Inventory newInv = Bukkit.createInventory(player, newSize, title);
+
+        // Separate items into accessible and overflow
+        List<ItemStack> overflowItems = new ArrayList<>();
+
         for (int i = 0; i < oldContents.length; i++) {
             ItemStack item = oldContents[i];
-            if (item != null && item.getType() != Material.AIR) {
-                ItemMeta meta = item.getItemMeta();
-                boolean isLocked = meta != null && meta.getPersistentDataContainer().has(lockedItemKey);
-                plugin.getDebugLogger().log("  Slot " + i + ": " + item.getType() + " x" + item.getAmount() + (isLocked ? " [LOCKED]" : ""));
+
+            // Skip null and air
+            if (item == null || item.getType() == Material.AIR) {
+                continue;
             }
-        }
 
-        // Find last real item (not barrier or locked)
-        int lastRealItemIndex = -1;
-        // Find last non-barrier item (including locked items)
-        int lastNonBarrierItemIndex = -1;
-
-        for (int i = oldContents.length - 1; i >= 0; i--) {
-            ItemStack item = oldContents[i];
-            if (item != null && item.getType() != Material.AIR) {
-                ItemMeta meta = item.getItemMeta();
-                boolean isBarrier = item.getType() == Material.BARRIER;
-                boolean isLocked = meta != null && meta.getPersistentDataContainer().has(lockedItemKey);
-
-                // Track last non-barrier item (could be locked or unlocked real item)
-                if (lastNonBarrierItemIndex == -1 && !isBarrier) {
-                    lastNonBarrierItemIndex = i;
-                }
-
-                // Track last real unlocked item
-                if (!isBarrier && !isLocked) {
-                    lastRealItemIndex = i;
-                    break;
-                }
-            }
-        }
-
-        int displaySize = newSize;
-
-        // If there are real items beyond permission size, expand to fit them
-        if (lastRealItemIndex >= newSize) {
-            displaySize = (int) (Math.ceil((lastRealItemIndex + 1) / 9.0)) * 9;
-        }
-        // If there are locked items beyond permission size, keep the old size to preserve them
-        else if (lastNonBarrierItemIndex >= newSize) {
-            displaySize = oldInv.getSize();
-        }
-
-        displaySize = Math.max(newSize, displaySize); // Ensure display size is at least the new permission size
-
-        plugin.getDebugLogger().log("Last real item index: " + lastRealItemIndex + ", Last non-barrier item index: " + lastNonBarrierItemIndex + ", Display size: " + displaySize + ", Permission size: " + newSize);
-
-        Component title = EnderChestUtils.getTitle(player);
-        Inventory newInv = Bukkit.createInventory(player, displaySize, title);
-
-        for (int i = 0; i < displaySize; i++) {
-            boolean isAccessible = i < newSize;
-            ItemStack oldItem = (i < oldContents.length) ? oldContents[i] : null;
-
-            if (isAccessible) {
-                // For accessible slots, only set real items (remove barriers and unlock locked items)
-                if (oldItem != null && oldItem.getType() != Material.AIR) {
-                    if (oldItem.getType() == Material.BARRIER) {
-                        // Don't carry over barriers to accessible slots
-                        plugin.getDebugLogger().log("  Slot " + i + ": Skipping barrier (accessible slot)");
-                        continue;
-                    }
-                    ItemStack unlockedItem = createUnlockedItem(oldItem);
-                    if (unlockedItem != null) {
-                        newInv.setItem(i, unlockedItem);
-                        plugin.getDebugLogger().log("  Slot " + i + ": Added unlocked item " + unlockedItem.getType());
-                    }
-                }
+            // If within new size, add to inventory
+            if (i < newSize) {
+                newInv.setItem(i, item);
+                plugin.getDebugLogger().log("  Slot " + i + ": Kept item " + item.getType());
             } else {
-                // For locked slots, preserve existing items as locked or add barriers
-                if (oldItem != null && oldItem.getType() != Material.AIR) {
-                    ItemMeta meta = oldItem.getItemMeta();
-                    // Check if item is already a barrier or locked item - keep as is
-                    if (oldItem.getType() == Material.BARRIER || (meta != null && meta.getPersistentDataContainer().has(lockedItemKey))) {
-                        newInv.setItem(i, oldItem);
-                        plugin.getDebugLogger().log("  Slot " + i + ": Kept existing locked item/barrier " + oldItem.getType());
-                    } else {
-                        // Convert regular items to locked items
-                        ItemStack lockedItem = createLockedItem(oldItem);
-                        newInv.setItem(i, lockedItem);
-                        plugin.getDebugLogger().log("  Slot " + i + ": Converted to locked item " + lockedItem.getType());
-                    }
-                } else {
-                    // Add barrier for empty locked slots
-                    newInv.setItem(i, createBarrierItem());
-                    plugin.getDebugLogger().log("  Slot " + i + ": Added barrier (empty locked slot)");
-                }
+                // Item is beyond permission - add to overflow
+                overflowItems.add(item);
+                plugin.getDebugLogger().log("  Slot " + i + ": Moved " + item.getType() + " to overflow storage");
             }
         }
 
-        plugin.getDebugLogger().log("Resize complete. New inventory size: " + newInv.getSize());
+        // Save overflow items to storage if any exist
+        if (!overflowItems.isEmpty()) {
+            ItemStack[] overflowArray = overflowItems.toArray(new ItemStack[0]);
+            plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), overflowArray)
+                .thenRun(() -> {
+                    plugin.getDebugLogger().log("Saved " + overflowItems.size() + " overflow items for " + player.getName());
+
+                    // Notify player once
+                    if (!notifiedOverflowPlayers.contains(player.getUniqueId())) {
+                        Scheduler.runEntityTask(player, () -> {
+                            LocaleManager locale = plugin.getLocaleManager();
+                            player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
+                            player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
+                        });
+                        notifiedOverflowPlayers.add(player.getUniqueId());
+                    }
+                });
+        } else {
+            // Try to restore overflow items if player has enough space now
+            restoreOverflowItems(player, newInv);
+        }
+
+        plugin.getDebugLogger().log("Resize complete. New inventory size: " + newInv.getSize() + ", Overflow items: " + overflowItems.size());
         return newInv;
     }
 
-    // Create a locked item with lore indicating it's in a locked slot.
-    private ItemStack createLockedItem(ItemStack original) {
-        if (original.getType() == Material.BARRIER) return original; // Don't process barriers
-        ItemMeta meta = original.getItemMeta();
-        if (meta == null) return original;
+    // Restore overflow items when player gains more space
+    private void restoreOverflowItems(Player player, Inventory inv) {
+        plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
+            .thenAccept(overflowItems -> {
+                if (overflowItems == null || overflowItems.length == 0) {
+                    return;
+                }
 
-        // Check for the PDC tag to prevent duplicate lore
-        if (meta.getPersistentDataContainer().has(lockedItemKey, PersistentDataType.BYTE)) {
-            return original;
-        }
+                Scheduler.runEntityTask(player, () -> {
+                    List<ItemStack> remainingOverflow = new ArrayList<>();
+                    final List<ItemStack> restoredItems = new ArrayList<>();
 
-        ItemStack lockedItem = original.clone();
-        meta = lockedItem.getItemMeta(); // Get meta from the clone
-        LocaleManager localeManager = plugin.getLocaleManager();
+                    for (ItemStack item : overflowItems) {
+                        if (item == null || item.getType() == Material.AIR) continue;
 
-        List<Component> newLore = new ArrayList<>(localeManager.getComponentList("items.locked-item-lore"));
-        List<Component> oldLore = meta.hasLore() ? meta.lore() : new ArrayList<>();
-        if (oldLore != null && !oldLore.isEmpty()) {
-            oldLore.addAll(newLore);
-            newLore = oldLore;
-        }
-        meta.lore(newLore);
+                        // Try to add item to inventory
+                        if (inv.firstEmpty() != -1) {
+                            inv.addItem(item);
+                            restoredItems.add(item);
+                            plugin.getDebugLogger().log("Restored overflow item " + item.getType() + " to " + player.getName());
+                        } else {
+                            remainingOverflow.add(item);
+                        }
+                    }
 
-        // Add the PDC tag
-        meta.getPersistentDataContainer().set(lockedItemKey, PersistentDataType.BYTE, (byte) 1);
-        lockedItem.setItemMeta(meta);
-        return lockedItem;
-    }
+                    final int count = restoredItems.size();
+                    if (count > 0) {
+                        // Update cache
+                        liveData.put(player.getUniqueId(), inv);
 
-    private ItemStack createUnlockedItem(ItemStack potentiallyLockedItem) {
-        if (potentiallyLockedItem == null || potentiallyLockedItem.getType() == Material.AIR) {
-            return null; // Nothing to unlock
-        }
+                        LocaleManager locale = plugin.getLocaleManager();
+                        player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-restored")
+                            .replaceText(builder -> builder.matchLiteral("<count>").replacement(String.valueOf(count))));
+                    }
 
-        if (potentiallyLockedItem.getType() == Material.BARRIER) {
-            return null; // Remove barriers from accessible slots
-        }
-
-        ItemMeta meta = potentiallyLockedItem.getItemMeta();
-        if (meta == null || !meta.getPersistentDataContainer().has(lockedItemKey, PersistentDataType.BYTE)) {
-            return potentiallyLockedItem; // Not a locked item, return as is
-        }
-
-        ItemStack unlockedItem = potentiallyLockedItem.clone();
-        meta = unlockedItem.getItemMeta(); // Get meta from the clone
-
-        // Remove the PDC tag
-        meta.getPersistentDataContainer().remove(lockedItemKey);
-
-        // Remove the lore
-        if (meta.hasLore()) {
-            List<Component> currentLore = Objects.requireNonNull(meta.lore());
-            List<Component> loreToRemove = plugin.getLocaleManager().getComponentList("items.locked-item-lore");
-            currentLore.removeAll(loreToRemove);
-            meta.lore(currentLore);
-        }
-
-        unlockedItem.setItemMeta(meta);
-        return unlockedItem;
-    }
-
-    private ItemStack createBarrierItem() {
-        ItemStack barrier = new ItemStack(Material.BARRIER);
-        ItemMeta meta = barrier.getItemMeta();
-        LocaleManager localeManager = plugin.getLocaleManager();
-        if (meta != null) {
-            meta.displayName(localeManager.getComponent("items.locked-barrier-name"));
-            meta.lore(localeManager.getComponentList("items.locked-item-lore"));
-            meta.getPersistentDataContainer().set(lockedItemKey, PersistentDataType.BYTE, (byte) 1);
-            barrier.setItemMeta(meta);
-        }
-        return barrier;
+                    // Update or clear overflow storage
+                    if (remainingOverflow.isEmpty()) {
+                        plugin.getStorageManager().getStorage().clearOverflowItems(player.getUniqueId());
+                        notifiedOverflowPlayers.remove(player.getUniqueId());
+                    } else {
+                        ItemStack[] remaining = remainingOverflow.toArray(new ItemStack[0]);
+                        plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), remaining);
+                    }
+                });
+            });
     }
 
     // Force-save all cached data during server shutdown to prevent data loss.
@@ -440,7 +385,7 @@ public class EnderChestManager {
                 });
     }
 
-    // Clean inventory contents for saving - remove barriers and unlock locked items
+    // Clean inventory contents for saving - remove null and air items
     private ItemStack[] cleanInventoryForSave(ItemStack[] contents) {
         ItemStack[] cleaned = new ItemStack[contents.length];
 
@@ -449,19 +394,6 @@ public class EnderChestManager {
 
             if (item == null || item.getType() == Material.AIR) {
                 cleaned[i] = null;
-                continue;
-            }
-
-            // Remove barriers completely
-            if (item.getType() == Material.BARRIER) {
-                cleaned[i] = null;
-                continue;
-            }
-
-            // Unlock locked items
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null && meta.getPersistentDataContainer().has(lockedItemKey)) {
-                cleaned[i] = createUnlockedItem(item);
             } else {
                 cleaned[i] = item;
             }
@@ -501,58 +433,39 @@ public class EnderChestManager {
             Inventory openInv = openInventories.get(uuid);
             int currentPermissionSize = EnderChestUtils.getSize(player);
 
-            // Get the cached inventory to check against, not the open one
+            // Get the cached inventory to check against
             Inventory cachedInv = liveData.getIfPresent(uuid);
             if (cachedInv == null) {
-                continue; // No cached data, skip
+                continue;
             }
 
-            // Calculate what the display size should be based on current permissions and items in CACHE
-            // This logic MUST match the logic in resizeInventory()
+            // Find last item index
             ItemStack[] contents = cachedInv.getContents();
-
-            int lastRealItemIndex = -1;
-            int lastNonBarrierItemIndex = -1;
+            int lastItemIndex = -1;
 
             for (int i = contents.length - 1; i >= 0; i--) {
                 ItemStack item = contents[i];
                 if (item != null && item.getType() != Material.AIR) {
-                    ItemMeta meta = item.getItemMeta();
-                    boolean isBarrier = item.getType() == Material.BARRIER;
-                    boolean isLocked = meta != null && meta.getPersistentDataContainer().has(lockedItemKey);
-
-                    if (lastNonBarrierItemIndex == -1 && !isBarrier) {
-                        lastNonBarrierItemIndex = i;
-                    }
-
-                    if (!isBarrier && !isLocked) {
-                        lastRealItemIndex = i;
-                        break;
-                    }
+                    lastItemIndex = i;
+                    break;
                 }
             }
 
             int expectedDisplaySize = currentPermissionSize;
 
-            // If there are real items beyond permission size, expand to fit them
-            if (lastRealItemIndex >= currentPermissionSize) {
-                expectedDisplaySize = (int) (Math.ceil((lastRealItemIndex + 1) / 9.0)) * 9;
-            }
-            // If there are locked items beyond permission size, keep the old size to preserve them
-            else if (lastNonBarrierItemIndex >= currentPermissionSize) {
-                expectedDisplaySize = cachedInv.getSize();
+            // If there are items beyond permission size, expand to fit them
+            if (lastItemIndex >= currentPermissionSize) {
+                expectedDisplaySize = (int) (Math.ceil((lastItemIndex + 1) / 9.0)) * 9;
             }
 
             expectedDisplaySize = Math.max(currentPermissionSize, expectedDisplaySize);
 
-            // Check 1: Size Mismatch (Reliable)
+            // Check size and title mismatch
             boolean sizeMismatched = cachedInv.getSize() != expectedDisplaySize;
 
-            // Check 2: Title Mismatch (More reliable string comparison)
             Component expectedTitleComponent = EnderChestUtils.getTitle(player);
             Component actualTitleComponent = player.getOpenInventory().title();
 
-            // Serialize to plain string to avoid object comparison issues
             String expectedTitle = LegacyComponentSerializer.legacySection().serialize(expectedTitleComponent);
             String actualTitle = LegacyComponentSerializer.legacySection().serialize(actualTitleComponent);
             boolean titleMismatched = !expectedTitle.equals(actualTitle);

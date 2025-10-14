@@ -94,4 +94,63 @@ public class YmlStorage implements StorageInterface {
             return YamlConfiguration.loadConfiguration(playerFile).getString("player-name");
         });
     }
+
+    @Override
+    public CompletableFuture<Void> saveOverflowItems(UUID playerUUID, ItemStack[] items) {
+        return CompletableFuture.runAsync(() -> {
+            File playerFile = getPlayerFile(playerUUID);
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            config.set("overflow-items", ItemSerializer.serialize(items));
+            config.set("overflow-created-at", System.currentTimeMillis());
+            try {
+                config.save(playerFile);
+            } catch (Exception e) {
+                EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<ItemStack[]> loadOverflowItems(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            File playerFile = getPlayerFile(playerUUID);
+            if (!playerFile.exists()) return null;
+
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("overflow-items");
+
+            if (serializedItems == null) return null;
+            return ItemSerializer.deserialize(serializedItems);
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> clearOverflowItems(UUID playerUUID) {
+        return CompletableFuture.runAsync(() -> {
+            File playerFile = getPlayerFile(playerUUID);
+            if (!playerFile.exists()) return;
+
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            config.set("overflow-items", null);
+            config.set("overflow-created-at", null);
+            try {
+                config.save(playerFile);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Boolean> hasOverflowItems(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            File playerFile = getPlayerFile(playerUUID);
+            if (!playerFile.exists()) return false;
+
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            return config.contains("overflow-items");
+        });
+    }
 }

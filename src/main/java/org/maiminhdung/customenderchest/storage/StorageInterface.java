@@ -21,4 +21,10 @@ public interface StorageInterface {
 
     // Get player name from UUID (for offline players)
     CompletableFuture<String> getPlayerName(UUID playerUUID);
+
+    // Overflow storage for items beyond permission limit
+    CompletableFuture<Void> saveOverflowItems(UUID playerUUID, ItemStack[] items);
+    CompletableFuture<ItemStack[]> loadOverflowItems(UUID playerUUID);
+    CompletableFuture<Void> clearOverflowItems(UUID playerUUID);
+    CompletableFuture<Boolean> hasOverflowItems(UUID playerUUID);
 }

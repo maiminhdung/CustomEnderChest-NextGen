@@ -1,15 +1,15 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.0.6-test
+version: 2.0.6-beta
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP
-api-version: 1.20
+api-version: 1.21
 folia-supported: true
 commands:
     customenderchest:
         description: Main command for CustomEnderChest.
-        usage: "/<command> [open|reload|admin]"
+        usage: "/<command> [open|reload|delete|convertall]"
         aliases: [ cec, ec, customec ]
 permissions:
     CustomEnderChest.level.0:

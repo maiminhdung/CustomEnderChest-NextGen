@@ -26,26 +26,34 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Main command handler for CustomEnderChest plugin
+ * Handles all /cec subcommands including open, reload, delete, convertall, etc.
+ */
 public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
     private final EnderChest plugin;
     private final LegacyImporter legacyImporter;
     private final StorageInterface storage;
     private final EnderChestManager manager;
+    private final ConvertAllCommand convertAllCommand;
 
     public EnderChestCommand(EnderChest plugin) {
         this.plugin = plugin;
         this.legacyImporter = new LegacyImporter(plugin);
         this.storage = plugin.getStorageManager().getStorage();
         this.manager = plugin.getEnderChestManager();
+        this.convertAllCommand = new ConvertAllCommand(plugin);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Default: open own enderchest
         if (args.length == 0) {
             return handleDefaultCommand(sender);
         }
 
+        // Handle subcommands
         String subCommand = args[0].toLowerCase();
         switch (subCommand) {
             case "open":
@@ -60,12 +68,19 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             case "delete":
                 handleDelete(sender, args, label);
                 break;
+            case "convertall":
+                // Delegate to ConvertAllCommand
+                convertAllCommand.onCommand(sender, command, label, args);
+                break;
             default:
                 return handleDefaultCommand(sender);
         }
         return true;
     }
 
+    /**
+     * Handle default command (no args) - opens player's own enderchest
+     */
     private boolean handleDefaultCommand(CommandSender sender) {
         if (sender instanceof Player p) {
             plugin.getEnderChestManager().openEnderChest(p);
@@ -75,15 +90,24 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Handle /cec open [player] command
+     * Opens own enderchest or another player's enderchest (admin)
+     */
     private void handleOpen(CommandSender sender, String[] args) {
         if (!(sender instanceof Player p)) {
             sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
             return;
         }
 
+        // Open own enderchest
         if (args.length == 1) {
             plugin.getEnderChestManager().openEnderChest(p);
-        } else if (args.length >= 2) {
+            return;
+        }
+
+        // Open other player's enderchest (admin only)
+        if (args.length >= 2) {
             if (!p.hasPermission("CustomEnderChest.command.open.other")) {
                 p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
                 return;
@@ -97,6 +121,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /**
+     * Opens another player's enderchest for admin viewing/editing
+     * Handles both online and offline players
+     */
     private void openOtherPlayerChest(Player admin, String targetName) {
         if (admin == null || !admin.isOnline()) {
             return;
@@ -151,6 +179,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 });
     }
 
+    /**
+     * Handle /cec reload command
+     * Reloads plugin configuration and locale files
+     */
     private void handleReload(CommandSender sender) {
         if (!sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -162,6 +194,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.reload-success"));
     }
 
+    /**
+     * Handle /cec importlegacy command
+     * Imports data from old plugin versions
+     */
     private void handleImport(CommandSender sender) {
         if (!sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -170,6 +206,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         legacyImporter.runImport(sender);
     }
 
+    /**
+     * Handle /cec delete <player> command
+     * Deletes a player's enderchest data completely
+     */
     private void handleDelete(CommandSender sender, String[] args, String label) {
         if (!sender.hasPermission("CustomEnderChest.command.delete")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -243,6 +283,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 completions.add("reload");
                 completions.add("importlegacy");
                 completions.add("delete");
+                completions.add("convertall");
             }
             return completions.stream()
                     .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))

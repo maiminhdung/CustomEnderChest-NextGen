@@ -6,6 +6,7 @@ import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.storage.StorageManager;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,6 +27,7 @@ public class MySQLStorage implements StorageInterface {
     public void init() {
         // Run the table creation asynchronously
         CompletableFuture.runAsync(() -> {
+            // Main table
             String sql = "CREATE TABLE IF NOT EXISTS `" + tableName + "` (" +
                     "`player_uuid` VARCHAR(36) NOT NULL PRIMARY KEY," +
                     "`player_name` VARCHAR(16)," +
@@ -40,6 +42,21 @@ public class MySQLStorage implements StorageInterface {
                 EnderChest.getInstance().getLogger().severe("Failed to initialize MySQL table!");
                 e.printStackTrace();
             }
+
+            // Overflow storage table
+            String overflowSql = "CREATE TABLE IF NOT EXISTS `" + tableName + "_overflow` (" +
+                    "`player_uuid` VARCHAR(36) NOT NULL PRIMARY KEY," +
+                    "`overflow_data` LONGTEXT," +
+                    "`created_at` BIGINT NOT NULL" +
+                    ")";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(overflowSql)) {
+                ps.executeUpdate();
+                EnderChest.getInstance().getLogger().info("Overflow storage table initialized successfully.");
+            } catch (Exception e) {
+                EnderChest.getInstance().getLogger().severe("Failed to initialize overflow table!");
+                e.printStackTrace();
+            }
         });
     }
 
@@ -52,12 +69,54 @@ public class MySQLStorage implements StorageInterface {
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
-                    return ItemSerializer.fromBase64(rs.getString("chest_data"));
+                    String data = rs.getString("chest_data");
+                    try {
+                        ItemStack[] items = ItemSerializer.fromBase64(data);
+
+                        // Auto-save migrated data in new format
+                        if (items != null && items.length > 0) {
+                            try {
+                                String newData = ItemSerializer.toBase64(items);
+                                if (!newData.equals(data)) {
+                                    EnderChest.getInstance().getLogger().info(
+                                        "[Migration] Auto-saving migrated data for player " + playerUUID
+                                    );
+                                    autoSaveMigratedData(playerUUID, newData);
+                                }
+                            } catch (Exception e) {
+                                // Ignore save errors, data is already loaded successfully
+                            }
+                        }
+
+                        return items;
+                    } catch (Exception e) {
+                        EnderChest.getInstance().getLogger().warning(
+                            "Failed to load enderchest data for player " + playerUUID + ": " + e.getMessage()
+                        );
+                        return new ItemStack[0];
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return null; // Return null if no data found
+            return null;
+        });
+    }
+
+    /**
+     * Auto-save migrated data in background
+     */
+    private void autoSaveMigratedData(UUID playerUUID, String newData) {
+        CompletableFuture.runAsync(() -> {
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE `" + tableName + "` SET `chest_data` = ? WHERE `player_uuid` = ?")) {
+                ps.setString(1, newData);
+                ps.setString(2, playerUUID.toString());
+                ps.executeUpdate();
+            } catch (Exception e) {
+                EnderChest.getInstance().getLogger().warning("Failed to auto-save migrated data: " + e.getMessage());
+            }
         });
     }
 
@@ -75,14 +134,13 @@ public class MySQLStorage implements StorageInterface {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return 0; // Size 0 if not found
+            return 0;
         });
     }
 
     @Override
     public CompletableFuture<Void> saveEnderChest(UUID playerUUID, String playerName, int size, ItemStack[] items) {
         return CompletableFuture.runAsync(() -> {
-            // This SQL statement uses ON DUPLICATE KEY UPDATE to handle both insert and update in one query
             String sql = "INSERT INTO `" + tableName + "` (player_uuid, player_name, chest_size, chest_data, last_seen) " +
                     "VALUES(?, ?, ?, ?, ?) " +
                     "ON DUPLICATE KEY UPDATE " +
@@ -93,14 +151,12 @@ public class MySQLStorage implements StorageInterface {
                 String data = ItemSerializer.toBase64(items);
                 long timestamp = System.currentTimeMillis();
 
-                // Query parameters for the INSERT
                 ps.setString(1, playerUUID.toString());
                 ps.setString(2, playerName);
                 ps.setInt(3, size);
                 ps.setString(4, data);
                 ps.setLong(5, timestamp);
 
-                // Query parameters for the UPDATE
                 ps.setString(6, playerName);
                 ps.setInt(7, size);
                 ps.setString(8, data);
@@ -142,6 +198,86 @@ public class MySQLStorage implements StorageInterface {
                 e.printStackTrace();
             }
             return null;
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveOverflowItems(UUID playerUUID, ItemStack[] items) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "INSERT INTO `" + tableName + "_overflow` (player_uuid, overflow_data, created_at) " +
+                    "VALUES(?, ?, ?) " +
+                    "ON DUPLICATE KEY UPDATE overflow_data = ?, created_at = ?";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                String data = ItemSerializer.toBase64(items);
+                long timestamp = System.currentTimeMillis();
+
+                ps.setString(1, playerUUID.toString());
+                ps.setString(2, data);
+                ps.setLong(3, timestamp);
+                ps.setString(4, data);
+                ps.setLong(5, timestamp);
+                ps.executeUpdate();
+            } catch (Exception e) {
+                EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<ItemStack[]> loadOverflowItems(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT overflow_data FROM `" + tableName + "_overflow` WHERE `player_uuid` = ?";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, playerUUID.toString());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    String data = rs.getString("overflow_data");
+                    try {
+                        return ItemSerializer.fromBase64(data);
+                    } catch (Exception e) {
+                        EnderChest.getInstance().getLogger().warning("Failed to load overflow items for " + playerUUID);
+                        return new ItemStack[0];
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> clearOverflowItems(UUID playerUUID) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "DELETE FROM `" + tableName + "_overflow` WHERE `player_uuid` = ?";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, playerUUID.toString());
+                ps.executeUpdate();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Boolean> hasOverflowItems(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT COUNT(*) FROM `" + tableName + "_overflow` WHERE `player_uuid` = ?";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, playerUUID.toString());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
         });
     }
 }

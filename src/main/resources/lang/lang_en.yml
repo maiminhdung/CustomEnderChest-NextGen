@@ -1,5 +1,7 @@
+# Prefix used for all messages
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
+
 messages:
-  prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
   no-permission: "<red>You don't have permission for that.</red>"
   players-only: "<red>This command can only be run by a player.</red>"
   reload-success: "<green>Configuration and language files have been reloaded.</green>"
@@ -7,6 +9,17 @@ messages:
   data-busy: "<red>Player data is busy. Please try again shortly.</red>"
   slot-locked: "<red>This slot is locked! You need a higher Ender Chest level.</red>"
   save-error: "<red>An error occurred while saving data. Please check the console.</red>"
+  invalid-player: "<red>Invalid player name.</red>"
+
+  # Migration messages
+  migration-data-incompatible: "<yellow>Warning: Your Ender Chest data is incompatible with the new server version (1.21.5)."
+  migration-data-cleared: "<yellow>Your Ender Chest has been reset due to incompatibility. Old data is still preserved in the database."
+  migration-contact-admin: "<gray>Please contact an admin if you need item recovery."
+
+  # Overflow messages
+  overflow-items-saved: "<yellow>⚠ Some items beyond your permission have been saved to overflow storage."
+  overflow-will-restore: "<gray>They will be automatically restored when you upgrade your Ender Chest."
+  overflow-items-restored: "<green>✓ Restored <count> items from overflow storage!"
 
 command:
   usage: "<red>Usage: <gray>/<label> <usage>"
@@ -33,6 +46,7 @@ import:
   no-folder: "<red>Could not find the old 'PlayerData' folder to import from."
   complete: "<green>Data import complete! <white><imported></white> legacy profiles imported."
   error: "<red>Failed to import file <yellow><file></yellow>. See console for details."
+
 
 items:
   locked-barrier-name: "<red>Locked Slot</red>"

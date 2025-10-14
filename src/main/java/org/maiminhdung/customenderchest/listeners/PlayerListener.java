@@ -60,22 +60,21 @@ public class PlayerListener implements Listener {
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOW)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.isCancelled()) return;
 
-        EnderChestManager manager = plugin.getEnderChestManager();
         Inventory clickedInv = event.getInventory();
-
         if (clickedInv == null) return;
 
+        EnderChestManager manager = plugin.getEnderChestManager();
         Inventory cachedInv = manager.getLoadedEnderChest(player.getUniqueId());
 
         if (cachedInv != null && clickedInv.equals(cachedInv)) {
             int slot = event.getRawSlot();
             int permissionSize = EnderChestUtils.getSize(player);
 
+            // Check if clicking outside permission range
             if (slot >= permissionSize && slot < clickedInv.getSize()) {
                 event.setCancelled(true);
                 player.sendMessage(plugin.getLocaleManager().getComponent("messages.slot-locked"));

@@ -59,6 +59,7 @@ public final class EnderChest extends JavaPlugin {
 			command.setTabCompleter(commandExecutor);
 		}
 
+
 		// Bstats Metrics
         if (config().getBoolean("general.bstats-metrics")) {
             setupBtatsMetrics();

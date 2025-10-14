@@ -1,7 +1,9 @@
 # File Ngôn ngữ Tiếng Việt cho CustomEnderChest
 
+# Prefix dùng cho tất cả messages
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
+
 messages:
-  prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
   no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
   players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
   reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
@@ -9,6 +11,17 @@ messages:
   data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
   slot-locked: "<red>Ô này đã bị khóa! Bạn cần cấp độ Ender Chest cao hơn.</red>"
   save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
+  invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
+
+  # Migration messages
+  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5>)."
+  migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
+  migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
+
+  # Overflow messages
+  overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."
+  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender."
+  overflow-items-restored: "<green>✓ Đã khôi phục <count> vật phẩm từ kho dự phòng!"
 
 command:
   usage: "<red>Sử dụng: <gray>/<label> <usage>"
@@ -36,6 +49,7 @@ import:
   no-folder: "<red>Không tìm thấy thư mục 'PlayerData' cũ để nhập dữ liệu."
   complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ."
   error: "<red>Không thể nhập file <yellow><file></yellow>. Vui lòng kiểm tra console."
+
 
 items:
   locked-barrier-name: "<red>Ô Bị Khóa</red>"
