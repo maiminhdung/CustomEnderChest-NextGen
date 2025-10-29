@@ -9,7 +9,7 @@ messages:
   reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
   data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
   data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
-  slot-locked: "<red>Ô này đã bị khóa! Bạn cần cấp độ Ender Chest cao hơn.</red>"
+  enderchest-click-disabled: "<red>Vui lòng sử dụng lệnh để mở EnderChest hay vì sử dụng rương.</red>"
   save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
   invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
 
@@ -49,11 +49,3 @@ import:
   no-folder: "<red>Không tìm thấy thư mục 'PlayerData' cũ để nhập dữ liệu."
   complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ."
   error: "<red>Không thể nhập file <yellow><file></yellow>. Vui lòng kiểm tra console."
-
-
-items:
-  locked-barrier-name: "<red>Ô Bị Khóa</red>"
-  locked-item-lore:
-    - ""
-    - "<red>Ô BỊ KHÓA</red>"
-    - "<gray>Nâng cấp Rương Ender để truy cập.</gray>"

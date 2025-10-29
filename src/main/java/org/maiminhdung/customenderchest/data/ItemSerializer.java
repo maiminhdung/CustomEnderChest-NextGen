@@ -1,8 +1,13 @@
 package org.maiminhdung.customenderchest.data;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
+import org.maiminhdung.customenderchest.EnderChest;
+import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.utils.Text;
+
+import net.kyori.adventure.text.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -166,7 +171,7 @@ public final class ItemSerializer {
     /**
      * Deserialize legacy BukkitObjectInputStream format and migrate to Paper format
      * This handles data from old plugin versions (pre-Paper migration)
-     *
+     * <p>
      * IMPORTANT: For data from <1.21.4 -> 1.21.5+ migration:
      * If you get errors, you MUST convert data on <1.21.4 server first before upgrading to 1.21.5+
      */
@@ -183,8 +188,7 @@ public final class ItemSerializer {
 
             Object obj = objectInput.readObject();
 
-            if (obj instanceof ItemStack[]) {
-                ItemStack[] legacyItems = (ItemStack[]) obj;
+            if (obj instanceof ItemStack[] legacyItems) {
                 LOGGER.log(Level.INFO, "Successfully loaded " + legacyItems.length + " slots from legacy format");
 
                 // Items are already loaded, Paper has already applied DataFixer during deserialization
@@ -242,31 +246,26 @@ public final class ItemSerializer {
      */
     private static void notifyOpsAboutLegacyData() {
         try {
-            org.bukkit.Bukkit.getScheduler().runTask(
-                org.bukkit.Bukkit.getPluginManager().getPlugin("CustomEnderChest"),
-                () -> {
-                    org.maiminhdung.customenderchest.EnderChest plugin =
-                        (org.maiminhdung.customenderchest.EnderChest) org.bukkit.Bukkit.getPluginManager().getPlugin("CustomEnderChest");
-
-                    if (plugin == null) return;
-
-                    org.bukkit.Bukkit.getOnlinePlayers().stream()
+            Scheduler.runTask(() -> Bukkit.getOnlinePlayers().stream()
                         .filter(org.bukkit.entity.Player::isOp)
                         .forEach(op -> {
+                            // Get plugin instance
+                            EnderChest plugin = (EnderChest) Bukkit.getPluginManager().getPlugin("CustomEnderChest");
+                            if (plugin == null) return;
+
                             // Get prefix from lang file and use Text utility for parsing
-                            var prefix = plugin.getLocaleManager().getComponent("prefix");
+                            Component prefix = plugin.getLocaleManager().getComponent("prefix");
 
                             op.sendMessage(prefix.append(Text.parse("<bold><red>WARNING!")));
                             op.sendMessage(prefix.append(Text.parse("<gold>Detected legacy data format in database!")));
                             op.sendMessage(prefix.append(Text.parse("<gold>This data was saved on an older Minecraft version.")));
-                            op.sendMessage(prefix);
+                            op.sendMessage(Component.empty());
                             op.sendMessage(prefix.append(Text.parse("<bold><red>IMPORTANT:")));
                             op.sendMessage(prefix.append(Text.parse("<gold>If you're on 1.21.4: Run <yellow>/cec convertall</yellow> to convert all data")));
                             op.sendMessage(prefix.append(Text.parse("<gold>If you're on 1.21.5+: Downgrade to 1.21.4, run conversion, then upgrade")));
-                            op.sendMessage(prefix);
+                            op.sendMessage(Component.empty());
                             op.sendMessage(prefix.append(Text.parse("<gold>Without conversion, players may lose their items!")));
-                        });
-                }
+                        })
             );
         } catch (Exception ignored) {
             // Ignore if we can't notify (plugin not enabled yet, etc.)
@@ -279,30 +278,25 @@ public final class ItemSerializer {
      */
     private static void notifyOpsAboutConversionFailure() {
         try {
-            org.bukkit.Bukkit.getScheduler().runTask(
-                org.bukkit.Bukkit.getPluginManager().getPlugin("CustomEnderChest"),
-                () -> {
-                    org.maiminhdung.customenderchest.EnderChest plugin =
-                        (org.maiminhdung.customenderchest.EnderChest) org.bukkit.Bukkit.getPluginManager().getPlugin("CustomEnderChest");
+            Scheduler.runTask(() -> Bukkit.getOnlinePlayers().stream()
+                    .filter(org.bukkit.entity.Player::isOp)
+                    .forEach(op -> {
+                        // Get plugin instance
+                        EnderChest plugin = (EnderChest) Bukkit.getPluginManager().getPlugin("CustomEnderChest");
+                        if (plugin == null) return;
 
-                    if (plugin == null) return;
+                        // Get prefix from lang file and use Text utility for parsing
+                        Component prefix = plugin.getLocaleManager().getComponent("prefix");
 
-                    org.bukkit.Bukkit.getOnlinePlayers().stream()
-                        .filter(org.bukkit.entity.Player::isOp)
-                        .forEach(op -> {
-                            // Get prefix from lang file and use Text utility for parsing
-                            var prefix = plugin.getLocaleManager().getComponent("prefix");
-
-                            op.sendMessage(prefix.append(Text.parse("<bold><dark_red>CRITICAL ERROR!")));
-                            op.sendMessage(prefix.append(Text.parse("<red>Failed to migrate player data from old format!")));
-                            op.sendMessage(prefix.append(Text.parse("<red>Player received empty enderchest.")));
-                            op.sendMessage(prefix);
-                            op.sendMessage(prefix.append(Text.parse("<bold><yellow>TO FIX:")));
-                            op.sendMessage(prefix.append(Text.parse("<yellow>1. Downgrade server to 1.21.4")));
-                            op.sendMessage(prefix.append(Text.parse("<yellow>2. Run: /cec convertall")));
-                            op.sendMessage(prefix.append(Text.parse("<yellow>3. Then upgrade to 1.21.5+")));
-                        });
-                }
+                        op.sendMessage(prefix.append(Text.parse("<bold><dark_red>CRITICAL ERROR!")));
+                        op.sendMessage(prefix.append(Text.parse("<red>Failed to migrate player data from old format!")));
+                        op.sendMessage(prefix.append(Text.parse("<red>Player received empty enderchest.")));
+                        op.sendMessage(Component.empty());
+                        op.sendMessage(prefix.append(Text.parse("<bold><yellow>TO FIX:")));
+                        op.sendMessage(prefix.append(Text.parse("<yellow>1. Downgrade server to 1.21.4")));
+                        op.sendMessage(prefix.append(Text.parse("<yellow>2. Run: /cec convertall")));
+                        op.sendMessage(prefix.append(Text.parse("<yellow>3. Then upgrade to 1.21.5+")));
+                    })
             );
         } catch (Exception ignored) {
             // Ignore if we can't notify

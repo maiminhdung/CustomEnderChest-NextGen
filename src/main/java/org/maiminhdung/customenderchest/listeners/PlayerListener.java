@@ -1,9 +1,6 @@
 package org.maiminhdung.customenderchest.listeners;
 
 import org.bukkit.Bukkit;
-import org.maiminhdung.customenderchest.EnderChest;
-import org.maiminhdung.customenderchest.Scheduler;
-import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,14 +9,17 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.maiminhdung.customenderchest.Scheduler;
+import org.maiminhdung.customenderchest.EnderChest;
+import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
-import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 
 import java.util.UUID;
 
@@ -45,70 +45,88 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEnderChestInteract(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) return;
-        if (event.getClickedBlock().getType() != Material.ENDER_CHEST) return;
-
-        event.setCancelled(true);
         Player player = event.getPlayer();
 
-        if (player == null || !player.isOnline()) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) return;
+        if (event.getClickedBlock().getType() != Material.ENDER_CHEST) return;
+        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-endechest-block")) return;
+
+        // Cancel the event immediately to prevent vanilla enderchest GUI from opening
+        event.setCancelled(true);
+
+        if (plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click")) {
+            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.enderchest-click-disabled"));
+            plugin.getSoundHandler().playSound(player, "fail");
             return;
         }
 
+
+        if (!player.isOnline()) {
+            return;
+        }
         // Let the EnderChestManager handle the permission check logic now
         plugin.getEnderChestManager().openEnderChest(player);
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync
-    @EventHandler(priority = EventPriority.LOW)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-
-        Inventory clickedInv = event.getInventory();
-        if (clickedInv == null) return;
-
-        EnderChestManager manager = plugin.getEnderChestManager();
-        Inventory cachedInv = manager.getLoadedEnderChest(player.getUniqueId());
-
-        if (cachedInv != null && clickedInv.equals(cachedInv)) {
-            int slot = event.getRawSlot();
-            int permissionSize = EnderChestUtils.getSize(player);
-
-            // Check if clicking outside permission range
-            if (slot >= permissionSize && slot < clickedInv.getSize()) {
-                event.setCancelled(true);
-                player.sendMessage(plugin.getLocaleManager().getComponent("messages.slot-locked"));
-                plugin.getSoundHandler().playSound(player, "fail");
-            }
-        }
-
-        // Logic for admin sync can go here, but separated for clarity
-        onAdminInventoryClick(event);
-    }
-
-    // Separate method to handle admin inventory click syncing
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAdminInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player admin)) return;
         if (event.isCancelled()) return;
 
-        Inventory clickedInv = event.getInventory();
+        syncInventoryChange(player, event.getInventory());
+    }
+
+    // Handle inventory drag events (shift-click, drag multiple items, etc.)
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.isCancelled()) return;
+
+        syncInventoryChange(player, event.getInventory());
+    }
+
+    /**
+     * Syncs inventory changes bidirectionally between admin views and player inventories
+     */
+    private void syncInventoryChange(Player player, Inventory clickedInv) {
         EnderChestManager manager = plugin.getEnderChestManager();
 
+        // === CASE 1: Admin is viewing someone's enderchest ===
         UUID targetUuid = manager.getAdminViewedChests().get(clickedInv);
-        if (targetUuid == null) return;
+        if (targetUuid != null) {
+            // Admin clicked in their view - sync changes to target player's live inventory
+            Player targetPlayer = Bukkit.getPlayer(targetUuid);
+            if (targetPlayer != null && targetPlayer.isOnline()) {
+                Scheduler.runTaskLater(() -> {
+                    Inventory targetLiveInv = manager.getLoadedEnderChest(targetUuid);
+                    if (targetLiveInv != null) {
+                        targetLiveInv.setContents(clickedInv.getContents());
+                        debug.log("Admin->Player sync: " + player.getName() +
+                                " modified " + targetPlayer.getName() + "'s enderchest");
+                    }
+                }, 1L);
+            }
+            return;
+        }
 
-        // If player online, sync immediately
-        Player targetPlayer = Bukkit.getPlayer(targetUuid);
-        if (targetPlayer != null && targetPlayer.isOnline()) {
-            Scheduler.runTaskLater(() -> {
-                Inventory targetLiveInv = manager.getLoadedEnderChest(targetUuid);
-                if (targetLiveInv != null) {
-                    targetLiveInv.setContents(clickedInv.getContents());
-                    debug.log("Real-time sync: Admin " + admin.getName() +
-                            " modified " + targetPlayer.getName() + "'s enderchest");
+        // === CASE 2: Player clicked their own inventory while admin is viewing ===
+        // Check if this player's inventory is being viewed by any admin
+        Inventory playerLiveInv = manager.getLoadedEnderChest(player.getUniqueId());
+        if (playerLiveInv != null && clickedInv.equals(playerLiveInv)) {
+            // Find if any admin is viewing this player's inventory
+            for (var entry : manager.getAdminViewedChests().entrySet()) {
+                if (entry.getValue().equals(player.getUniqueId())) {
+                    Inventory adminView = entry.getKey();
+                    // Sync changes from player's inventory to admin's view
+                    Scheduler.runTaskLater(() -> {
+                        adminView.setContents(playerLiveInv.getContents());
+                        debug.log("Player->Admin sync: " + player.getName() +
+                                "'s changes synced to admin view");
+                    }, 1L);
+                    break;
                 }
-            }, 1L);
+            }
         }
     }
 
@@ -119,8 +137,6 @@ public class PlayerListener implements Listener {
 
         EnderChestManager manager = plugin.getEnderChestManager();
         Inventory closedInventory = event.getInventory();
-
-        if (closedInventory == null) return;
 
         LocaleManager localeManager = plugin.getLocaleManager();
 

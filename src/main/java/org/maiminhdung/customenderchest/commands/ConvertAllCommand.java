@@ -19,11 +19,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Command to convert ALL player data in database from old format to new Paper format
- *
+ * <p>
  * This command should be run on <1.21.4 server BEFORE upgrading to 1.21.5+
  * It converts all stored enderchest data from legacy BukkitObjectInputStream format
  * to Paper's cross-version compatible serializeAsBytes format.
- *
+ * <p>
  * Usage: /cec convertall
  * Permission: CustomEnderChest.admin
  */
@@ -206,17 +206,8 @@ public class ConvertAllCommand implements CommandExecutor {
     }
 
     /**
-     * Data class to hold player information during conversion
-     */
-    private static class PlayerData {
-        final UUID uuid;
-        final String playerName;
-        final String oldData;
-
-        PlayerData(UUID uuid, String playerName, String oldData) {
-            this.uuid = uuid;
-            this.playerName = playerName;
-            this.oldData = oldData;
-        }
+         * Data class to hold player information during conversion
+         */
+        private record PlayerData(UUID uuid, String playerName, String oldData) {
     }
 }

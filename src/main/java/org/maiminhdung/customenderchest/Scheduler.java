@@ -14,7 +14,7 @@ import java.util.logging.Level;
 /**
  * Universal scheduler utility that supports both traditional Bukkit scheduling
  * and Folia's region-based scheduling system.
- *
+ * <p>
  * This class automatically detects which server implementation is being used
  * and provides appropriate scheduling methods.
  */
@@ -34,6 +34,8 @@ public final class Scheduler {
             plugin.getLogger().info("Folia detected! Using region-based threading system.");
         } catch (final ClassNotFoundException e) {
             plugin.getLogger().info("Running on standard Paper server.");
+        } catch (Exception e) {
+            plugin.getLogger().warning("Unexpected error while detecting server type: " + e.getMessage());
         }
         isFolia = foliaDetected;
     }

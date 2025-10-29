@@ -1,12 +1,9 @@
 package org.maiminhdung.customenderchest.utils;
 
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.maiminhdung.customenderchest.EnderChest;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
-import org.maiminhdung.customenderchest.locale.LocaleManager;
 
 public class EnderChestUtils {
 

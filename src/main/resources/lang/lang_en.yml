@@ -7,7 +7,7 @@ messages:
   reload-success: "<green>Configuration and language files have been reloaded.</green>"
   data-still-loading: "<yellow>Your data is still loading, please wait a moment...</yellow>"
   data-busy: "<red>Player data is busy. Please try again shortly.</red>"
-  slot-locked: "<red>This slot is locked! You need a higher Ender Chest level.</red>"
+  enderchest-click-disabled: "<red>Please use the command to open the EnderChest instead of using a chest.</red>"
   save-error: "<red>An error occurred while saving data. Please check the console.</red>"
   invalid-player: "<red>Invalid player name.</red>"
 
@@ -46,11 +46,3 @@ import:
   no-folder: "<red>Could not find the old 'PlayerData' folder to import from."
   complete: "<green>Data import complete! <white><imported></white> legacy profiles imported."
   error: "<red>Failed to import file <yellow><file></yellow>. See console for details."
-
-
-items:
-  locked-barrier-name: "<red>Locked Slot</red>"
-  locked-item-lore:
-    - ""
-    - "<red>LOCKED SLOT</red>"
-    - "<gray>Upgrade your Ender Chest to access.</gray>"

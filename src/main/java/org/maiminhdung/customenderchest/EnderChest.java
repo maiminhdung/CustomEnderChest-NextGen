@@ -2,6 +2,7 @@ package org.maiminhdung.customenderchest;
 
 import lombok.Getter;
 import org.maiminhdung.customenderchest.bstats.Metrics;
+import org.maiminhdung.customenderchest.bstats.Metrics.SimplePie;
 import org.maiminhdung.customenderchest.commands.EnderChestCommand;
 import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.listeners.PlayerListener;
@@ -74,10 +75,8 @@ public final class EnderChest extends JavaPlugin {
 
 	private void setupBtatsMetrics() {
 		Metrics metrics = new Metrics(this, 26551);
-
-        metrics.addCustomChart(new Metrics.SimplePie("storage_type", () ->
-                config().getString("storage.type", "FILE").toLowerCase())
-        );
+        metrics.addCustomChart(new SimplePie("language", () -> getConfig().getString("general.locale")));
+        metrics.addCustomChart(new SimplePie("storage_type", () -> getConfig().getString("storage.type")));
 	}
 
 	@Override

@@ -6,7 +6,6 @@ import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.storage.StorageManager;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

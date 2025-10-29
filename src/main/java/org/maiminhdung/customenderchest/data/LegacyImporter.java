@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Xử lý việc nhập dữ liệu từ định dạng file YML của phiên bản plugin cũ.
+ * Handles importing legacy ender chest data from older versions.
  */
 public class LegacyImporter {
 
@@ -47,7 +47,6 @@ public class LegacyImporter {
 
         // Run the import asynchronously to avoid blocking the main thread
         CompletableFuture.runAsync(() -> {
-            int total = files.length;
             int imported = 0;
 
             for (File file : files) {

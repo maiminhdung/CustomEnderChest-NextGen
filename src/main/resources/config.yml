@@ -61,7 +61,13 @@ storage:
 enderchest-options:
   # Disable opening the custom ender chest by right-clicking an Ender Chest block.
   # Useful if you only want players to open the chest via command.
-  disable-enderchest-click: false
+  # Note: If this option is true, don't set true for `disable-plugin-on-endechest-block` below.
+  disable-enderchest-click: true
+  # Disable the plugin's functionality when interacting with an Ender Chest block.
+  # The block will function as a normal vanilla Ender Chest.
+  # Useful if you want to reserve the block for vanilla use only.
+  # Note: If this option is true, don't set true for `disable-enderchest-click` above.
+  disable-plugin-on-endechest-block: false
 
 # Default settings for new players
 default-player:

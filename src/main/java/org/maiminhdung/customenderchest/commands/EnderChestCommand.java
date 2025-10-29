@@ -242,7 +242,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     dataLockManager.lock(targetUUID);
 
 
-                    int size = 0;
+                    int size;
                     if (target.isOnline()) {
                         size = EnderChestUtils.getSize(Objects.requireNonNull(target.getPlayer()));
                     } else {
@@ -284,6 +284,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 completions.add("importlegacy");
                 completions.add("delete");
                 completions.add("convertall");
+                completions.add("open");
             }
             return completions.stream()
                     .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))

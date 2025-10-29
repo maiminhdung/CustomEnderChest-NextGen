@@ -208,6 +208,19 @@ public class EnderChestManager {
         }
 
         // Calculate expected display size based on permission and item positions
+        int expectedDisplaySize = getExpectedDisplaySize(inv, permissionSize);
+
+        if (inv.getSize() != expectedDisplaySize) {
+            inv = resizeInventory(player, inv, permissionSize);
+            liveData.put(player.getUniqueId(), inv);
+        }
+
+        player.openInventory(inv);
+        openInventories.put(player.getUniqueId(), inv); // Start tracking this inventory
+        soundHandler.playSound(player, "open");
+    }
+
+    private static int getExpectedDisplaySize(Inventory inv, int permissionSize) {
         ItemStack[] contents = inv.getContents();
         int lastItemIndex = -1;
         for (int i = contents.length - 1; i >= 0; i--) {
@@ -223,15 +236,7 @@ public class EnderChestManager {
             expectedDisplaySize = (int) (Math.ceil((lastItemIndex + 1) / 9.0)) * 9;
         }
         expectedDisplaySize = Math.max(permissionSize, expectedDisplaySize);
-
-        if (inv.getSize() != expectedDisplaySize) {
-            inv = resizeInventory(player, inv, permissionSize);
-            liveData.put(player.getUniqueId(), inv);
-        }
-
-        player.openInventory(inv);
-        openInventories.put(player.getUniqueId(), inv); // Start tracking this inventory
-        soundHandler.playSound(player, "open");
+        return expectedDisplaySize;
     }
 
     // Resize the inventory - Use overflow storage for items beyond permission
@@ -354,9 +359,12 @@ public class EnderChestManager {
     }
 
     // Force-save all cached data during server shutdown to prevent data loss.
-    private CompletableFuture<Void> autoSaveAll() {
+    private void autoSaveAll() {
         Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
-        if (cacheSnapshot.isEmpty()) return CompletableFuture.completedFuture(null);
+        if (cacheSnapshot.isEmpty()) {
+            CompletableFuture.completedFuture(null);
+            return;
+        }
         plugin.getDebugLogger().log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
@@ -367,7 +375,7 @@ public class EnderChestManager {
                     return saveEnderChest(uuid, name, entry.getValue());
                 })
                 .filter(Objects::nonNull).toArray(CompletableFuture[]::new);
-        return CompletableFuture.allOf(futures);
+        CompletableFuture.allOf(futures);
     }
 
     // Save ender chest data with inventory object, used for online players.
@@ -430,7 +438,6 @@ public class EnderChestManager {
                 continue;
             }
 
-            Inventory openInv = openInventories.get(uuid);
             int currentPermissionSize = EnderChestUtils.getSize(player);
 
             // Get the cached inventory to check against
