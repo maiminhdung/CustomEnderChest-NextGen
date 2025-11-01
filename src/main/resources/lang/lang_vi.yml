@@ -14,7 +14,7 @@ messages:
   invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
 
   # Migration messages
-  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5>)."
+  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5+)."
   migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
   migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
 
@@ -48,4 +48,4 @@ import:
   progress: "<gray>Tiến trình nhập: Đã xử lý <yellow><processed>/<total></yellow> file."
   no-folder: "<red>Không tìm thấy thư mục 'PlayerData' cũ để nhập dữ liệu."
   complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ."
-  error: "<red>Không thể nhập file <yellow><file></yellow>. Vui lòng kiểm tra console."
+  error: "<red>Không thể chuyển hóa file <yellow><file></yellow>. Vui lòng kiểm tra console."

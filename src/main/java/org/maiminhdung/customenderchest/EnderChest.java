@@ -13,6 +13,7 @@ import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.maiminhdung.customenderchest.utils.UpdateChecker;
 
 public final class EnderChest extends JavaPlugin {
 
@@ -32,6 +33,8 @@ public final class EnderChest extends JavaPlugin {
     private DebugLogger debugLogger;
     @Getter
     private DataLockManager dataLockManager;
+    @Getter
+    private UpdateChecker updateChecker; // Next update
 
 	@Override
 	public void onEnable() {

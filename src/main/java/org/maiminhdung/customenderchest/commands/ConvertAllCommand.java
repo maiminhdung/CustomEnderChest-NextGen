@@ -184,6 +184,9 @@ public class ConvertAllCommand implements CommandExecutor {
                 if (failCount.get() > 0) {
                     sender.sendMessage("§c[CustomEnderChest] Some players failed to convert.");
                     sender.sendMessage("§c[CustomEnderChest] Check console for details.");
+
+                    // Notify all online OPs about the failures
+                    notifyOpsAboutConversionFailures(failCount.get(), playerDataList.size());
                 }
 
                 isConverting = false;
@@ -202,6 +205,38 @@ public class ConvertAllCommand implements CommandExecutor {
                 plugin.getLogger().severe("  at " + element.toString());
             }
             isConverting = false;
+        }
+    }
+
+    /**
+     * Notifies all online OPs about conversion failures
+     * Only called once after convertall command if there were failures
+     */
+    private void notifyOpsAboutConversionFailures(int failCount, int totalCount) {
+        try {
+            org.bukkit.Bukkit.getOnlinePlayers().stream()
+                    .filter(org.bukkit.entity.Player::isOp)
+                    .forEach(op -> {
+                        // Get prefix from lang file and use Text utility for parsing
+                        net.kyori.adventure.text.Component prefix = plugin.getLocaleManager().getComponent("prefix");
+
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<bold><red>CONVERSION WARNING!")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<red>Failed to convert " + failCount + " out of " + totalCount + " player data!")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<red>Affected players may receive empty enderchests.")));
+                        op.sendMessage(net.kyori.adventure.text.Component.empty());
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<bold><yellow>POSSIBLE CAUSES:")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<yellow>1. Data was from Minecraft <1.21.4 on server version 1.21.5+")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<yellow>2. Corrupted player data in database")));
+                        op.sendMessage(net.kyori.adventure.text.Component.empty());
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<bold><yellow>TO FIX:")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<yellow>1. Downgrade server to 1.21.4")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<yellow>2. Run: /cec convertall again")));
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<yellow>3. Then upgrade to 1.21.5+")));
+                        op.sendMessage(net.kyori.adventure.text.Component.empty());
+                        op.sendMessage(prefix.append(org.maiminhdung.customenderchest.utils.Text.parse("<gray>Check console logs for detailed error information.")));
+                    });
+        } catch (Exception ignored) {
+            // Ignore if we can't notify
         }
     }
 

@@ -12,7 +12,7 @@ messages:
   invalid-player: "<red>Invalid player name.</red>"
 
   # Migration messages
-  migration-data-incompatible: "<yellow>Warning: Your Ender Chest data is incompatible with the new server version (1.21.5)."
+  migration-data-incompatible: "<yellow>Warning: Your Ender Chest data is incompatible with the new server version (1.21.5+)."
   migration-data-cleared: "<yellow>Your Ender Chest has been reset due to incompatibility. Old data is still preserved in the database."
   migration-contact-admin: "<gray>Please contact an admin if you need item recovery."
 

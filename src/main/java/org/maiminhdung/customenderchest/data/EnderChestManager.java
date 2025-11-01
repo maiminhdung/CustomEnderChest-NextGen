@@ -128,8 +128,34 @@ public class EnderChestManager {
                                 if (items.length <= size) {
                                     inv.setContents(items);
                                 } else {
+                                    // Player has items beyond their current permission limit
+                                    // Save the accessible items to inventory
                                     for (int i = 0; i < size; i++) {
                                         inv.setItem(i, items[i]);
+                                    }
+
+                                    // Save overflow items to storage
+                                    List<ItemStack> overflowItems = new ArrayList<>();
+                                    for (int i = size; i < items.length; i++) {
+                                        ItemStack item = items[i];
+                                        if (item != null && item.getType() != Material.AIR) {
+                                            overflowItems.add(item);
+                                        }
+                                    }
+
+                                    if (!overflowItems.isEmpty()) {
+                                        ItemStack[] overflowArray = overflowItems.toArray(new ItemStack[0]);
+                                        plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), overflowArray)
+                                            .thenRun(() -> {
+                                                plugin.getDebugLogger().log("Saved " + overflowItems.size() + " overflow items for " + player.getName() + " on join");
+
+                                                // Notify player about overflow items
+                                                Scheduler.runEntityTask(player, () -> {
+                                                    LocaleManager locale = plugin.getLocaleManager();
+                                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
+                                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
+                                                });
+                                            });
                                     }
                                 }
                             }
@@ -272,19 +298,38 @@ public class EnderChestManager {
         // Save overflow items to storage if any exist
         if (!overflowItems.isEmpty()) {
             ItemStack[] overflowArray = overflowItems.toArray(new ItemStack[0]);
-            plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), overflowArray)
-                .thenRun(() -> {
-                    plugin.getDebugLogger().log("Saved " + overflowItems.size() + " overflow items for " + player.getName());
 
-                    // Notify player once
-                    if (!notifiedOverflowPlayers.contains(player.getUniqueId())) {
-                        Scheduler.runEntityTask(player, () -> {
-                            LocaleManager locale = plugin.getLocaleManager();
-                            player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
-                            player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
-                        });
-                        notifiedOverflowPlayers.add(player.getUniqueId());
+            // Load existing overflow items and merge them
+            plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
+                .thenAccept(existingOverflow -> {
+                    List<ItemStack> mergedOverflow = new ArrayList<>(overflowItems);
+
+                    // Add existing overflow items to the list
+                    if (existingOverflow != null && existingOverflow.length > 0) {
+                        for (ItemStack item : existingOverflow) {
+                            if (item != null && item.getType() != Material.AIR) {
+                                mergedOverflow.add(item);
+                            }
+                        }
+                        plugin.getDebugLogger().log("Merged " + existingOverflow.length + " existing overflow items with " + overflowItems.size() + " new items");
                     }
+
+                    // Save merged overflow items
+                    ItemStack[] mergedArray = mergedOverflow.toArray(new ItemStack[0]);
+                    plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), mergedArray)
+                        .thenRun(() -> {
+                            plugin.getDebugLogger().log("Saved " + mergedOverflow.size() + " total overflow items for " + player.getName());
+
+                            // Notify player once
+                            if (!notifiedOverflowPlayers.contains(player.getUniqueId())) {
+                                Scheduler.runEntityTask(player, () -> {
+                                    LocaleManager locale = plugin.getLocaleManager();
+                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
+                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
+                                });
+                                notifiedOverflowPlayers.add(player.getUniqueId());
+                            }
+                        });
                 });
         } else {
             // Try to restore overflow items if player has enough space now

@@ -180,8 +180,7 @@ public final class ItemSerializer {
         LOGGER.log(Level.WARNING, "Detected legacy data format - attempting migration...");
         LOGGER.log(Level.WARNING, "=================================================================");
 
-        // Notify all online OPs about legacy data detection
-        notifyOpsAboutLegacyData();
+        // Don't spam OPs on every legacy data load - only notify if migration fails
 
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
              BukkitObjectInputStream objectInput = new BukkitObjectInputStream(inputStream)) {
@@ -240,37 +239,6 @@ public final class ItemSerializer {
         }
     }
 
-    /**
-     * Notifies all online OPs about legacy data detection
-     * Warns them to run conversion command on 1.21.4 before upgrading
-     */
-    private static void notifyOpsAboutLegacyData() {
-        try {
-            Scheduler.runTask(() -> Bukkit.getOnlinePlayers().stream()
-                        .filter(org.bukkit.entity.Player::isOp)
-                        .forEach(op -> {
-                            // Get plugin instance
-                            EnderChest plugin = (EnderChest) Bukkit.getPluginManager().getPlugin("CustomEnderChest");
-                            if (plugin == null) return;
-
-                            // Get prefix from lang file and use Text utility for parsing
-                            Component prefix = plugin.getLocaleManager().getComponent("prefix");
-
-                            op.sendMessage(prefix.append(Text.parse("<bold><red>WARNING!")));
-                            op.sendMessage(prefix.append(Text.parse("<gold>Detected legacy data format in database!")));
-                            op.sendMessage(prefix.append(Text.parse("<gold>This data was saved on an older Minecraft version.")));
-                            op.sendMessage(Component.empty());
-                            op.sendMessage(prefix.append(Text.parse("<bold><red>IMPORTANT:")));
-                            op.sendMessage(prefix.append(Text.parse("<gold>If you're on 1.21.4: Run <yellow>/cec convertall</yellow> to convert all data")));
-                            op.sendMessage(prefix.append(Text.parse("<gold>If you're on 1.21.5+: Downgrade to 1.21.4, run conversion, then upgrade")));
-                            op.sendMessage(Component.empty());
-                            op.sendMessage(prefix.append(Text.parse("<gold>Without conversion, players may lose their items!")));
-                        })
-            );
-        } catch (Exception ignored) {
-            // Ignore if we can't notify (plugin not enabled yet, etc.)
-        }
-    }
 
     /**
      * Notifies all online OPs about conversion failure
