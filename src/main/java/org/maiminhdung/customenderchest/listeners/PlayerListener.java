@@ -200,6 +200,25 @@ public class PlayerListener implements Listener {
         Inventory cachedInv = manager.getLoadedEnderChest(player.getUniqueId());
         if (closedInventory.equals(cachedInv)) {
             plugin.getSoundHandler().playSound(player, "close");
+
+            // Save data immediately when player closes their ender chest to prevent data loss
+            DataLockManager dataLockManager = plugin.getDataLockManager();
+
+            // Only save if not currently locked (prevent double-save)
+            if (!dataLockManager.isLocked(player.getUniqueId())) {
+                debug.log("Player " + player.getName() + " closed their ender chest. Saving data...");
+
+                // Save asynchronously without blocking - let CompletableFuture handle it
+                manager.saveEnderChest(player.getUniqueId(), player.getName(), closedInventory)
+                    .exceptionally(ex -> {
+                        plugin.getLogger().severe("Failed to save data for " + player.getName() +
+                            " after closing inventory: " + ex.getMessage());
+                        return null;
+                    })
+                    .thenRun(() -> {
+                        debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                    });
+            }
         }
     }
 }

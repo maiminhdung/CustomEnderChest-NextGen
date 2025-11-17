@@ -37,6 +37,7 @@ public class EnderChestManager {
     private final Set<UUID> resizingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> notifiedOverflowPlayers = ConcurrentHashMap.newKeySet();
 
+
     public EnderChestManager(EnderChest plugin) {
         this.plugin = plugin;
         this.soundHandler = plugin.getSoundHandler();
@@ -100,7 +101,6 @@ public class EnderChestManager {
                             Inventory inv = Bukkit.createInventory(player, (size > 0 ? size : 9), title);
 
                             // Check if items is empty array (indicating deserialization failure)
-                            boolean hadIncompatibleData = false;
                             if (items != null && items.length == 0) {
                                 // Check if player actually had data in database
                                 plugin.getStorageManager().getStorage().loadEnderChestSize(player.getUniqueId())
@@ -116,15 +116,6 @@ public class EnderChestManager {
                                         }
                                     });
                             } else if (items != null && size > 0) {
-                                // Check if any items were cleared during deserialization
-                                boolean hasNullItems = false;
-                                for (ItemStack item : items) {
-                                    if (item == null) {
-                                        hasNullItems = true;
-                                        break;
-                                    }
-                                }
-
                                 if (items.length <= size) {
                                     inv.setContents(items);
                                 } else {
@@ -184,11 +175,19 @@ public class EnderChestManager {
         plugin.getDebugLogger().log("Player " + player.getName() + " quit. Data lock acquired for saving.");
         Inventory inv = liveData.getIfPresent(player.getUniqueId());
         if (inv != null) {
-            saveEnderChest(player.getUniqueId(), player.getName(), inv).whenComplete((v, ex) -> {
+            try {
+                // Use join() to wait for save to complete before player fully disconnects
+                // This prevents data loss during server shutdown/restart
+                saveEnderChest(player.getUniqueId(), player.getName(), inv).join();
+                plugin.getDebugLogger().log("Quit-save for " + player.getName() + " complete.");
+            } catch (Exception e) {
+                plugin.getLogger().severe("Failed to save data for " + player.getName() + " on quit: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
                 liveData.invalidate(player.getUniqueId());
                 dataLockManager.unlock(player.getUniqueId());
-                plugin.getDebugLogger().log("Quit-save for " + player.getName() + " complete. Lock released.");
-            });
+                plugin.getDebugLogger().log("Lock released for " + player.getName());
+            }
         } else {
             dataLockManager.unlock(player.getUniqueId());
         }
@@ -197,9 +196,18 @@ public class EnderChestManager {
     public void shutdown() {
         if (autoSaveTask != null) { autoSaveTask.cancel();}
         if (inventoryTrackerTask != null) inventoryTrackerTask.cancel(); // Cancel the inventory tracker task
+
         plugin.getLogger().info("Auto-save task cancelled. Saving all cached player data before shutting down...");
-        shutdownSave().join();
-        plugin.getLogger().info("All player data has been saved successfully.");
+
+        try {
+            // Use join() to block and wait for all saves to complete
+            // This is critical to prevent data loss on server shutdown
+            shutdownSave().join();
+            plugin.getLogger().info("All player data has been saved successfully.");
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error during shutdown save: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     // Open the ender chest for the player, loading data if necessary.
@@ -297,8 +305,6 @@ public class EnderChestManager {
 
         // Save overflow items to storage if any exist
         if (!overflowItems.isEmpty()) {
-            ItemStack[] overflowArray = overflowItems.toArray(new ItemStack[0]);
-
             // Load existing overflow items and merge them
             plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
                 .thenAccept(existingOverflow -> {
@@ -403,24 +409,41 @@ public class EnderChestManager {
         return CompletableFuture.allOf(futures);
     }
 
-    // Force-save all cached data during server shutdown to prevent data loss.
+    // Auto-save all cached data periodically to prevent data loss.
     private void autoSaveAll() {
         Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
         if (cacheSnapshot.isEmpty()) {
-            CompletableFuture.completedFuture(null);
             return;
         }
         plugin.getDebugLogger().log("Auto-saving data for " + cacheSnapshot.size() + " online players...");
-        CompletableFuture<?>[] futures = cacheSnapshot.stream()
-                .map(entry -> {
-                    UUID uuid = entry.getKey();
-                    if (dataLockManager.isLocked(uuid)) return null;
-                    Player p = Bukkit.getPlayer(uuid);
-                    String name = (p != null) ? p.getName() : null;
-                    return saveEnderChest(uuid, name, entry.getValue());
-                })
-                .filter(Objects::nonNull).toArray(CompletableFuture[]::new);
-        CompletableFuture.allOf(futures);
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (Map.Entry<UUID, Inventory> entry : cacheSnapshot) {
+            UUID uuid = entry.getKey();
+
+            // Skip if data is locked (being processed elsewhere)
+            if (dataLockManager.isLocked(uuid)) {
+                continue;
+            }
+
+            Player p = Bukkit.getPlayer(uuid);
+            String name = (p != null) ? p.getName() : null;
+
+            if (name != null) {
+                CompletableFuture<Void> future = saveEnderChest(uuid, name, entry.getValue())
+                    .exceptionally(ex -> {
+                        plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                        return null;
+                    });
+                futures.add(future);
+            }
+        }
+
+        // Wait for all saves to complete to ensure data consistency
+        if (!futures.isEmpty()) {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenRun(() -> plugin.getDebugLogger().log("Auto-save completed for all players."));
+        }
     }
 
     // Save ender chest data with inventory object, used for online players.
@@ -471,8 +494,18 @@ public class EnderChestManager {
 
         for (UUID uuid : new ArrayList<>(openInventories.keySet())) {
             Player player = Bukkit.getPlayer(uuid);
+
             // Stop tracking if player is offline or not viewing our inventory anymore
-            if (player == null || !player.isOnline() || player.getOpenInventory().getTopInventory() != openInventories.get(uuid)) {
+            if (player == null || !player.isOnline()) {
+                openInventories.remove(uuid);
+                resizingPlayers.remove(uuid);
+                continue;
+            }
+
+            Inventory openInv = player.getOpenInventory().getTopInventory();
+            Inventory trackedInv = openInventories.get(uuid);
+
+            if (openInv != trackedInv) {
                 openInventories.remove(uuid);
                 resizingPlayers.remove(uuid);
                 continue;
@@ -491,29 +524,11 @@ public class EnderChestManager {
                 continue;
             }
 
-            // Find last item index
-            ItemStack[] contents = cachedInv.getContents();
-            int lastItemIndex = -1;
-
-            for (int i = contents.length - 1; i >= 0; i--) {
-                ItemStack item = contents[i];
-                if (item != null && item.getType() != Material.AIR) {
-                    lastItemIndex = i;
-                    break;
-                }
-            }
-
-            int expectedDisplaySize = currentPermissionSize;
-
-            // If there are items beyond permission size, expand to fit them
-            if (lastItemIndex >= currentPermissionSize) {
-                expectedDisplaySize = (int) (Math.ceil((lastItemIndex + 1) / 9.0)) * 9;
-            }
-
-            expectedDisplaySize = Math.max(currentPermissionSize, expectedDisplaySize);
+            // IMPORTANT: Only check if we need to resize, don't resize while player is actively using inventory
+            // This prevents race conditions and item duplication
 
             // Check size and title mismatch
-            boolean sizeMismatched = cachedInv.getSize() != expectedDisplaySize;
+            boolean sizeMismatched = cachedInv.getSize() != openInv.getSize();
 
             Component expectedTitleComponent = EnderChestUtils.getTitle(player);
             Component actualTitleComponent = player.getOpenInventory().title();
@@ -522,25 +537,41 @@ public class EnderChestManager {
             String actualTitle = LegacyComponentSerializer.legacySection().serialize(actualTitleComponent);
             boolean titleMismatched = !expectedTitle.equals(actualTitle);
 
+            // Only resize if there's an actual mismatch and permission changed significantly
             if (sizeMismatched || titleMismatched) {
-                plugin.getDebugLogger().log("State change for " + player.getName() + ". Refreshing inventory. Size mismatch: " + sizeMismatched + ", Title mismatch: " + titleMismatched);
+                plugin.getDebugLogger().log("Permission/title change detected for " + player.getName() + ". Triggering inventory refresh.");
 
                 // Mark as resizing to prevent double-resize
                 resizingPlayers.add(uuid);
 
-                // Remove from tracking first to prevent infinite loops
+                // Remove from tracking first to prevent loops
                 openInventories.remove(uuid);
 
+                // Save current cursor item
                 ItemStack cursorItem = player.getItemOnCursor();
                 player.setItemOnCursor(null);
 
-                // Close current inventory first
+                // CRITICAL: Sync cached inventory with current open inventory BEFORE closing
+                // This prevents item loss when player was moving items
+                cachedInv.setContents(openInv.getContents());
+
+                // Close current inventory
                 player.closeInventory();
 
-                // Resize the inventory and update cache - use cached inventory as source!
+                // Resize the inventory and update cache
                 Inventory resizedInv = resizeInventory(player, cachedInv, currentPermissionSize);
                 liveData.put(uuid, resizedInv);
-                plugin.getDebugLogger().log("Resized inventory cached. New size: " + resizedInv.getSize() + ", Expected: " + expectedDisplaySize);
+                plugin.getDebugLogger().log("Resized inventory cached. New size: " + resizedInv.getSize());
+
+                // Save the resized inventory immediately to prevent data loss (async, non-blocking)
+                saveEnderChest(uuid, player.getName(), resizedInv)
+                    .exceptionally(ex -> {
+                        plugin.getLogger().warning("Failed to save resized inventory for " + player.getName() + ": " + ex.getMessage());
+                        return null;
+                    })
+                    .thenRun(() -> {
+                        plugin.getDebugLogger().log("Saved resized inventory for " + player.getName());
+                    });
 
                 // Use a delayed task to prevent issues with immediate reopening
                 Scheduler.runTaskLater(() -> {
@@ -551,7 +582,7 @@ public class EnderChestManager {
                         player.setItemOnCursor(cursorItem);
                     }
 
-                    // Clear resizing flag AFTER reopening and add extra delay to prevent tracker interference
+                    // Clear resizing flag AFTER reopening
                     Scheduler.runTaskLater(() -> {
                         resizingPlayers.remove(uuid);
                     }, 5L);
