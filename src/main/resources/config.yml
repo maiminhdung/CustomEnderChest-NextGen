@@ -15,6 +15,8 @@ general:
   # Set to true to enable bStats metrics, which helps the developer understand how the plugin is used.
   # Set to false to disable it.
   bstats-metrics: true
+  # Enable or disable automatic update checking.
+  update-checker: true
 
 # Database settings
 storage:
@@ -102,3 +104,4 @@ sounds:
     name: "ENTITY_PLAYER_LEVELUP"
     volume: 0.8
     pitch: 1.5
+

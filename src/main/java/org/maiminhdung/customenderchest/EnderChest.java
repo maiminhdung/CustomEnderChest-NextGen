@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest;
 
+import io.github.pluginupdatecore.updater.ConfigUpdater;
+import io.github.pluginupdatecore.updater.UpdateChecker;
 import lombok.Getter;
 import org.maiminhdung.customenderchest.bstats.Metrics;
 import org.maiminhdung.customenderchest.bstats.Metrics.SimplePie;
@@ -13,13 +15,12 @@ import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.maiminhdung.customenderchest.utils.UpdateChecker;
 
 public final class EnderChest extends JavaPlugin {
 
 	@Getter
     private static EnderChest instance;
-
+    @Getter
 	private ConfigHandler configHandler;
 	@Getter
     private EnderChestManager enderChestManager;
@@ -34,7 +35,7 @@ public final class EnderChest extends JavaPlugin {
     @Getter
     private DataLockManager dataLockManager;
     @Getter
-    private UpdateChecker updateChecker; // Next update
+    private UpdateChecker updateChecker;
 
 	@Override
 	public void onEnable() {
@@ -53,7 +54,19 @@ public final class EnderChest extends JavaPlugin {
 		// Initialize the core logic manager
 		this.enderChestManager = new EnderChestManager(this);
 
-		// Register listeners and commands
+        // Initialize Update Checker
+        if (config().getBoolean("general.update-checker")) {
+            this.updateChecker = new UpdateChecker(this, "AipGDIso");
+            this.updateChecker.checkForUpdates();
+            this.getLogger().info("Update checker is enabled.");
+        }
+
+        // Update config.yml and reload config if necessary
+        ConfigUpdater configUpdater = new ConfigUpdater(this);
+        configUpdater.checkAndUpdateConfig();
+        reloadConfig();
+
+        // Register listeners and commands
 		this.getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
 		// Register commands and tab completer
 		EnderChestCommand commandExecutor = new EnderChestCommand(this);
@@ -71,7 +84,6 @@ public final class EnderChest extends JavaPlugin {
         } else {
             this.getLogger().info("bStats Metrics are disabled.");
         }
-
 
         this.getLogger().info("CustomEnderChest has been enabled successfully!");
 	}

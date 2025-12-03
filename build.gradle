@@ -10,6 +10,10 @@ version = '2.0.8-dev'
 repositories {
     mavenCentral()
     maven {
+        name = "jitpack"
+        url = "https://jitpack.io"
+    }
+    maven {
         name = "papermc-repo"
         url = "https://repo.papermc.io/repository/maven-public/"
     }
@@ -30,12 +34,14 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.1.0")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("com.h2database:h2:2.3.232")
+    implementation("com.github.NighterDevelopment:PluginUpdateCore:1.0.4")
 }
 
 tasks {
     shadowJar {
         relocate("com.zaxxer.hikari", "org.maiminhdung.customenderchest.lib.hikari")
         relocate("org.h2", "org.maiminhdung.customenderchest.lib.h2")
+        relocate("com.NighterDevelopment.PluginUpdateCore", "org.maiminhdung.customenderchest.lib.pluginupdatecore")
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)
