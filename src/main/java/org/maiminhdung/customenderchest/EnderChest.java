@@ -3,6 +3,7 @@ package org.maiminhdung.customenderchest;
 import io.github.pluginupdatecore.updater.ConfigUpdater;
 import io.github.pluginupdatecore.updater.UpdateChecker;
 import lombok.Getter;
+import org.maiminhdung.customenderchest.backup.BackupManager;
 import org.maiminhdung.customenderchest.bstats.Metrics;
 import org.maiminhdung.customenderchest.bstats.Metrics.SimplePie;
 import org.maiminhdung.customenderchest.commands.EnderChestCommand;
@@ -36,6 +37,8 @@ public final class EnderChest extends JavaPlugin {
     private DataLockManager dataLockManager;
     @Getter
     private UpdateChecker updateChecker;
+    @Getter
+    private BackupManager backupManager;
 
 	@Override
 	public void onEnable() {
@@ -54,10 +57,13 @@ public final class EnderChest extends JavaPlugin {
 		// Initialize the core logic manager
 		this.enderChestManager = new EnderChestManager(this);
 
+        // Initialize Backup Manager
+        this.backupManager = new BackupManager(this);
+        this.backupManager.startAutoBackup();
+
         // Initialize Update Checker
         if (config().getBoolean("general.update-checker")) {
             this.updateChecker = new UpdateChecker(this, "AipGDIso");
-            this.updateChecker.checkForUpdates();
             this.getLogger().info("Update checker is enabled.");
         }
 
@@ -96,16 +102,32 @@ public final class EnderChest extends JavaPlugin {
 
 	@Override
 	public void onDisable() {
+		this.getLogger().info("CustomEnderChest is shutting down...");
+
+		// Stop automatic backup task first
+		if (this.backupManager != null) {
+			this.backupManager.stopAutoBackup();
+			this.getLogger().info("Automatic backup task stopped.");
+		}
+
 		// Shutdown manager tasks and save all data
 		if (this.enderChestManager != null) {
+            this.getLogger().info("Saving all player data...");
             this.enderChestManager.shutdown();
+            this.getLogger().info("All player data saved successfully.");
         }
+
+        // Create a final backup before shutdown
+        if (this.backupManager != null) {
+        	this.backupManager.createShutdownBackup();
+        }
+
         // Close database connection pool
         if (this.storageManager != null) {
             this.storageManager.close();
         }
         
-        this.getLogger().info("CustomEnderChest has been disabled.");
+        this.getLogger().info("CustomEnderChest has been disabled successfully.");
 	}
 
     public ConfigHandler config() {

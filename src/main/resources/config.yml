@@ -18,6 +18,20 @@ general:
   # Enable or disable automatic update checking.
   update-checker: true
 
+# Backup settings
+backup:
+  # Enable automatic backups of player data
+  enabled: true
+  # Interval between automatic backups (in minutes)
+  interval-minutes: 60
+  # Maximum number of backup files to keep
+  # Old backups will be automatically deleted when this limit is exceeded
+  max-backups: 10
+  # Number of days to keep backups (older backups will be deleted)
+  retention-days: 7
+  # Create a backup when the server shuts down
+  backup-on-shutdown: true
+
 # Database settings
 storage:
   # Storage type. Options:
@@ -64,7 +78,7 @@ enderchest-options:
   # Disable opening the custom ender chest by right-clicking an Ender Chest block.
   # Useful if you only want players to open the chest via command.
   # Note: If this option is true, don't set true for `disable-plugin-on-endechest-block` below.
-  disable-enderchest-click: true
+  disable-enderchest-click: false
   # Disable the plugin's functionality when interacting with an Ender Chest block.
   # The block will function as a normal vanilla Ender Chest.
   # Useful if you want to reserve the block for vanilla use only.
