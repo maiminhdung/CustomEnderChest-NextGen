@@ -1,0 +1,48 @@
+# Prefix dat voor alle berichten wordt gebruikt
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
+
+messages:
+  no-permission: "<red>Je hebt daar geen toestemming voor.</red>"
+  players-only: "<red>Dit commando kan alleen door een speler worden uitgevoerd.</red>"
+  reload-success: "<green>Configuratie- en taal bestanden zijn opnieuw geladen.</green>"
+  data-still-loading: "<yellow>Je gegevens worden nog geladen, even geduld a.u.b...</yellow>"
+  data-busy: "<red>Spelerdata is bezig. Probeer het binnenkort opnieuw.</red>"
+  enderchest-click-disabled: "<red>Gebruik het commando om de EnderChest te openen in plaats van een kist te gebruiken.</red>"
+  save-error: "<red>Er is een fout opgetreden tijdens het opslaan van gegevens. Controleer de console.</red>"
+  invalid-player: "<red>Ongeldige spelersnaam.</red>"
+
+  # Migratie berichten
+  migration-data-incompatible: "<yellow>Waarschuwing: je Ender Chest data is niet compatibel met de nieuwe serverversie (1.21.5+)."
+  migration-data-cleared: "<yellow>Je Ender Chest is gereset vanwege incompatibiliteit. Oude gegevens zijn nog steeds bewaard in de database."
+  migration-contact-admin: "<gray>Neem contact op met een admin als je de items wilt herstellen."
+
+  # Overflow berichten
+  overflow-items-saved: "<yellow>⚠ Sommige items die buiten uw toestemming vallen, zijn opgeslagen in de overflow-opslag."
+  overflow-will-restore: "<gray>Ze worden automatisch hersteld wanneer je je Ender Chest upgradet."
+  overflow-items-restored: "<green>✓ <count> Items uit de overflow-opslag hersteld!"
+
+command:
+  usage: "<red>Gebruik: <gray>/<label> <usage>"
+  player-not-found: "<red>Speler '<player>' niet gevonden of heeft geen gegevens."
+  delete-usage: "<red>Gebruik: <gray>/<label> delete <player>"
+  delete-success: "<green>Succesvol de Ender Chest van <white><player></white> verwijderd."
+  loading-chest: "<yellow>Ender Chest van <white><player></white> wordt geladen..."
+
+titles:
+  enderchest: "<level> - <light_purple><player>'s Kist"
+  admin_view: "<dark_red>Admin Overzicht: <white><player>"
+
+levels:
+  '0': "&fLevel 1" # 1 rij (9 slots)
+  '1': "&aLevel 2" # 2 rij (18 slots)
+  '2': "&bLevel 3" # 3 rij (27 slots)
+  '3': "&eLevel 4" # 4 rij (36 slots)
+  '4': "&6Level 5" # 5 rij (45 slots)
+  '5': "&d&lLevel 6" # 6 rij (54 slots)
+
+import:
+  started: "<green>Beginnen met importeren vanuit legacy platte bestanden. Dit kan even duren..."
+  progress: "<gray>Import progressie: <yellow><processed>/<total></yellow> bestanden verwerkt."
+  no-folder: "<red>De oude map ‘PlayerData’ om te importeren kon niet worden gevonden."
+  complete: "<green>Data import compleet! <white><imported></white> legacy profielen geïmporteerd."
+  error: "<red>Niet gelukt om de bestanden te importeren <yellow><file></yellow>. Bekijk de console voor details."
