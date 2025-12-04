@@ -7,7 +7,7 @@
 # General plugin settings
 general:
   # Select the language file to use.
-  # Example: "en" will load "lang_en.yml", "vi" will load "lang_vi.yml".
+  # Example: "en" will load "lang_en.yml", "vi" will load "lang_vi.yml", "zhcn" will load lang_zhcn.yml.
   # Make sure the corresponding file exists in the plugin's /lang folder.
   locale: "en"
   # Set to true to enable debug logging. Useful for troubleshooting.
