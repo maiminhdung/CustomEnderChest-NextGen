@@ -94,6 +94,9 @@ default-player:
   # 27 equals 3 rows, the same as a vanilla Ender Chest.
   # Default permission level is CustomEnderChest.level.3 (27 slots).
   size: 27
+  # Allow new players to use /cec, /ec, /customec commands by default.
+  # If false, players will need "CustomEnderChest.commands" permission to use commands.
+  allow-command: true
 
 # Sound customization
 sounds:

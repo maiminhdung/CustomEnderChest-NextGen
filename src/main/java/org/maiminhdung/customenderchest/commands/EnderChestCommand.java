@@ -48,6 +48,21 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Check command permission for players (except for admin commands)
+        if (sender instanceof Player p) {
+            // Admin commands always require specific permissions (handled in their methods)
+            boolean isAdminCommand = args.length > 0 &&
+                (args[0].equalsIgnoreCase("reload") ||
+                 args[0].equalsIgnoreCase("importlegacy") ||
+                 args[0].equalsIgnoreCase("delete") ||
+                 args[0].equalsIgnoreCase("convertall"));
+
+            if (!isAdminCommand && !hasCommandPermission(p)) {
+                p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+                return true;
+            }
+        }
+
         // Default: open own enderchest
         if (args.length == 0) {
             return handleDefaultCommand(sender);
@@ -76,6 +91,24 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 return handleDefaultCommand(sender);
         }
         return true;
+    }
+
+    /**
+     * Check if player has permission to use commands
+     * Returns true if player is OP, has CustomEnderChest.commands permission
+     * OR if default-player.allow-command is enabled in config
+     */
+    private boolean hasCommandPermission(Player player) {
+        // OP players always have permission
+        if (player.isOp()) {
+            return true;
+        }
+
+        if (player.hasPermission("CustomEnderChest.commands")) {
+            return true;
+        }
+
+        return plugin.config().getBoolean("default-player.allow-command");
     }
 
     /**

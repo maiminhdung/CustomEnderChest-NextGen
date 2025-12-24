@@ -1,6 +1,6 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.0.8-beta
+version: 2.0.9-dev
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP
@@ -43,5 +43,5 @@ permissions:
             description: Administrative access for reload and import commands.
             default: op
     CustomEnderChest.commands:
-        description: Open your enderchest via command.
-        default: op
+        description: Allows using /cec, /ec, /customec commands to open your enderchest.
+        default: false
