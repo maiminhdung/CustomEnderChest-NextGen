@@ -34,7 +34,7 @@ public class H2Storage implements StorageInterface {
                     "last_seen BIGINT NOT NULL" +
                     ")";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to initialize H2 table!");
@@ -48,7 +48,7 @@ public class H2Storage implements StorageInterface {
                     "created_at BIGINT NOT NULL" +
                     ")";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(overflowSql)) {
+                    PreparedStatement ps = conn.prepareStatement(overflowSql)) {
                 ps.executeUpdate();
                 EnderChest.getInstance().getLogger().info("Overflow storage table initialized successfully.");
             } catch (Exception e) {
@@ -63,7 +63,8 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT chest_data FROM " + tableName + " WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10); // 10 second query timeout
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
@@ -77,8 +78,7 @@ public class H2Storage implements StorageInterface {
                                 String newData = ItemSerializer.toBase64(items);
                                 if (!newData.equals(data)) {
                                     EnderChest.getInstance().getLogger().info(
-                                        "[Migration] Auto-saving migrated data for player " + playerUUID
-                                    );
+                                            "[Migration] Auto-saving migrated data for player " + playerUUID);
                                     autoSaveMigratedData(playerUUID, newData);
                                 }
                             } catch (Exception e) {
@@ -89,13 +89,26 @@ public class H2Storage implements StorageInterface {
                         return items;
                     } catch (Exception e) {
                         EnderChest.getInstance().getLogger().warning(
-                            "Failed to load enderchest data for player " + playerUUID + ": " + e.getMessage()
-                        );
+                                "Failed to deserialize enderchest data for player " + playerUUID + ": "
+                                        + e.getMessage());
                         return new ItemStack[0];
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                // Log detailed error for database issues
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && (errorMsg.contains("corrupted") || errorMsg.contains("MVStoreException"))) {
+                    EnderChest.getInstance().getLogger().severe(
+                            "[H2Storage] Database file appears to be corrupted! Player: " + playerUUID +
+                                    ". Consider restoring from backup or deleting the database file to recreate.");
+                } else {
+                    EnderChest.getInstance().getLogger().severe(
+                            "[H2Storage] Failed to load enderchest for " + playerUUID + ": " + errorMsg);
+                }
+                // Only print full stack trace in debug mode
+                if (EnderChest.getInstance().config().getBoolean("general.debug")) {
+                    e.printStackTrace();
+                }
             }
             return null;
         });
@@ -107,8 +120,8 @@ public class H2Storage implements StorageInterface {
     private void autoSaveMigratedData(UUID playerUUID, String newData) {
         CompletableFuture.runAsync(() -> {
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(
-                     "UPDATE " + tableName + " SET chest_data = ? WHERE player_uuid = ?")) {
+                    PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE " + tableName + " SET chest_data = ? WHERE player_uuid = ?")) {
                 ps.setString(1, newData);
                 ps.setString(2, playerUUID.toString());
                 ps.executeUpdate();
@@ -123,14 +136,16 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT chest_size FROM " + tableName + " WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
                     return rs.getInt("chest_size");
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                EnderChest.getInstance().getLogger().warning(
+                        "[H2Storage] Failed to load chest size for " + playerUUID + ": " + e.getMessage());
             }
             return 0;
         });
@@ -143,8 +158,8 @@ public class H2Storage implements StorageInterface {
                     "KEY(player_uuid) " +
                     "VALUES(?, ?, ?, ?, ?)";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 String data = ItemSerializer.toBase64(items);
                 ps.setString(1, playerUUID.toString());
                 ps.setString(2, playerName);
@@ -153,7 +168,9 @@ public class H2Storage implements StorageInterface {
                 ps.setLong(5, System.currentTimeMillis());
                 ps.executeUpdate();
             } catch (Exception e) {
-                e.printStackTrace();
+                EnderChest.getInstance().getLogger().severe(
+                        "[H2Storage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
+                                + e.getMessage());
             }
         });
     }
@@ -163,7 +180,7 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.runAsync(() -> {
             String sql = "DELETE FROM " + tableName + " WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
                 ps.executeUpdate();
             } catch (Exception e) {
@@ -177,7 +194,7 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT player_name FROM " + tableName + " WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
@@ -196,7 +213,7 @@ public class H2Storage implements StorageInterface {
             String sql = "MERGE INTO " + tableName + "_overflow (player_uuid, overflow_data, created_at) " +
                     "KEY(player_uuid) VALUES(?, ?, ?)";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 String data = ItemSerializer.toBase64(items);
                 ps.setString(1, playerUUID.toString());
                 ps.setString(2, data);
@@ -214,7 +231,7 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT overflow_data FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
@@ -238,7 +255,7 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.runAsync(() -> {
             String sql = "DELETE FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
                 ps.executeUpdate();
             } catch (Exception e) {
@@ -252,7 +269,7 @@ public class H2Storage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT COUNT(*) FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
@@ -265,4 +282,3 @@ public class H2Storage implements StorageInterface {
         });
     }
 }
-

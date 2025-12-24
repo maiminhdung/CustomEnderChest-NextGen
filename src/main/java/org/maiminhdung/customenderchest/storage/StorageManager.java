@@ -28,7 +28,8 @@ public class StorageManager {
                 if (connectMySQL()) {
                     this.storageImplementation = new MySQLStorage(this);
                 } else {
-                    plugin.getLogger().severe("MySQL connection failed! Falling back to YML storage as a safe default.");
+                    plugin.getLogger()
+                            .severe("MySQL connection failed! Falling back to YML storage as a safe default.");
                     this.storageImplementation = new YmlStorage(plugin);
                 }
                 break;
@@ -69,6 +70,10 @@ public class StorageManager {
             config.setMinimumIdle(plugin.config().getInt("storage.pool-settings.min-idle", 5));
             config.setConnectionTimeout(plugin.config().getInt("storage.pool-settings.connection-timeout", 30000));
 
+            // Additional reliability settings
+            config.setLeakDetectionThreshold(60000); // Detect connection leaks after 1 minute
+            config.setKeepaliveTime(300000); // 5 minutes keepalive
+
             this.dataSource = new HikariDataSource(config);
             return true;
         } catch (Exception e) {
@@ -82,10 +87,23 @@ public class StorageManager {
             HikariConfig config = new HikariConfig();
             config.setPoolName("CEC-H2-Pool");
             File dbFile = new File(plugin.getDataFolder(), "data/enderchests");
-            config.setJdbcUrl("jdbc:h2:" + dbFile.getAbsolutePath());
+            config.setJdbcUrl(
+                    "jdbc:h2:" + dbFile.getAbsolutePath() + ";MODE=MySQL;AUTO_RECONNECT=TRUE;LOCK_TIMEOUT=10000");
             config.setDriverClassName("org.maiminhdung.customenderchest.lib.h2.Driver");
 
+            // Pool size settings
             config.setMaximumPoolSize(plugin.config().getInt("storage.pool-settings.max-pool-size", 10));
+            config.setMinimumIdle(2);
+
+            // Timeout settings to prevent hanging
+            config.setConnectionTimeout(10000); // 10 seconds to get connection
+            config.setValidationTimeout(5000); // 5 seconds to validate connection
+            config.setIdleTimeout(600000); // 10 minutes idle timeout
+            config.setMaxLifetime(1800000); // 30 minutes max lifetime
+            config.setLeakDetectionThreshold(60000); // Detect connection leaks after 1 minute
+
+            // Keep connections alive
+            config.setKeepaliveTime(300000); // 5 minutes keepalive
 
             this.dataSource = new HikariDataSource(config);
             return true;

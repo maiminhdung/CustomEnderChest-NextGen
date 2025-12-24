@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 public class EnderChestManager {
@@ -32,18 +33,20 @@ public class EnderChestManager {
     private final Scheduler.Task autoSaveTask;
     private final Scheduler.Task inventoryTrackerTask;
 
-    @Getter private final Map<Inventory, UUID> adminViewedChests = new ConcurrentHashMap<>();
-    @Getter private final Map<UUID, Inventory> openInventories = new ConcurrentHashMap<>();
+    @Getter
+    private final Map<Inventory, UUID> adminViewedChests = new ConcurrentHashMap<>();
+    @Getter
+    private final Map<UUID, Inventory> openInventories = new ConcurrentHashMap<>();
     private final Set<UUID> resizingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> notifiedOverflowPlayers = ConcurrentHashMap.newKeySet();
-
 
     public EnderChestManager(EnderChest plugin) {
         this.plugin = plugin;
         this.soundHandler = plugin.getSoundHandler();
         this.dataLockManager = plugin.getDataLockManager();
 
-        // Use Guava Cache to automatically clean up data for players who have been offline for a while.
+        // Use Guava Cache to automatically clean up data for players who have been
+        // offline for a while.
         this.liveData = CacheBuilder.newBuilder()
                 .expireAfterAccess(30, TimeUnit.MINUTES)
                 .build();
@@ -54,14 +57,14 @@ public class EnderChestManager {
             this.autoSaveTask = Scheduler.runTaskTimerAsync(
                     this::autoSaveAll,
                     autoSaveIntervalTicks,
-                    autoSaveIntervalTicks
-            );
+                    autoSaveIntervalTicks);
         } else {
             this.autoSaveTask = null;
         }
         // Start the inventory tracker task
         this.inventoryTrackerTask = Scheduler.runTaskTimer(this::checkOpenInventories, 20L, 20L);
     }
+
     // Load player data when they join the server.
     public void onPlayerJoin(Player player) {
         if (player == null || !player.isOnline()) {
@@ -75,7 +78,8 @@ public class EnderChestManager {
         }
 
         if (!dataLockManager.lock(player.getUniqueId())) {
-            plugin.getDebugLogger().log("Attempted to load data for " + player.getName() + ", but their data is currently locked.");
+            plugin.getDebugLogger()
+                    .log("Attempted to load data for " + player.getName() + ", but their data is currently locked.");
             return;
         }
 
@@ -93,7 +97,8 @@ public class EnderChestManager {
                     Scheduler.runEntityTask(player, () -> {
                         try {
                             if (error != null) {
-                                plugin.getLogger().log(Level.SEVERE, "Failed to load data for " + player.getName(), error);
+                                plugin.getLogger().log(Level.SEVERE, "Failed to load data for " + player.getName(),
+                                        error);
                                 return;
                             }
                             int size = EnderChestUtils.getSize(player);
@@ -104,17 +109,20 @@ public class EnderChestManager {
                             if (items != null && items.length == 0) {
                                 // Check if player actually had data in database
                                 plugin.getStorageManager().getStorage().loadEnderChestSize(player.getUniqueId())
-                                    .thenAccept(savedSize -> {
-                                        if (savedSize > 0) {
-                                            // Player had data but it couldn't be loaded (version incompatibility)
-                                            Scheduler.runEntityTask(player, () -> {
-                                                LocaleManager locale = plugin.getLocaleManager();
-                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-data-incompatible"));
-                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-data-cleared"));
-                                                player.sendMessage(locale.getPrefixedComponent("messages.migration-contact-admin"));
-                                            });
-                                        }
-                                    });
+                                        .thenAccept(savedSize -> {
+                                            if (savedSize > 0) {
+                                                // Player had data but it couldn't be loaded (version incompatibility)
+                                                Scheduler.runEntityTask(player, () -> {
+                                                    LocaleManager locale = plugin.getLocaleManager();
+                                                    player.sendMessage(locale.getPrefixedComponent(
+                                                            "messages.migration-data-incompatible"));
+                                                    player.sendMessage(locale
+                                                            .getPrefixedComponent("messages.migration-data-cleared"));
+                                                    player.sendMessage(locale
+                                                            .getPrefixedComponent("messages.migration-contact-admin"));
+                                                });
+                                            }
+                                        });
                             } else if (items != null && size > 0) {
                                 if (items.length <= size) {
                                     inv.setContents(items);
@@ -136,24 +144,29 @@ public class EnderChestManager {
 
                                     if (!overflowItems.isEmpty()) {
                                         ItemStack[] overflowArray = overflowItems.toArray(new ItemStack[0]);
-                                        plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), overflowArray)
-                                            .thenRun(() -> {
-                                                plugin.getDebugLogger().log("Saved " + overflowItems.size() + " overflow items for " + player.getName() + " on join");
+                                        plugin.getStorageManager().getStorage()
+                                                .saveOverflowItems(player.getUniqueId(), overflowArray)
+                                                .thenRun(() -> {
+                                                    plugin.getDebugLogger().log("Saved " + overflowItems.size()
+                                                            + " overflow items for " + player.getName() + " on join");
 
-                                                // Notify player about overflow items
-                                                Scheduler.runEntityTask(player, () -> {
-                                                    LocaleManager locale = plugin.getLocaleManager();
-                                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
-                                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
+                                                    // Notify player about overflow items
+                                                    Scheduler.runEntityTask(player, () -> {
+                                                        LocaleManager locale = plugin.getLocaleManager();
+                                                        player.sendMessage(locale
+                                                                .getPrefixedComponent("messages.overflow-items-saved"));
+                                                        player.sendMessage(locale.getPrefixedComponent(
+                                                                "messages.overflow-will-restore"));
+                                                    });
                                                 });
-                                            });
                                     }
                                 }
                             }
                             liveData.put(player.getUniqueId(), inv);
 
                             long duration = (System.nanoTime() - startTime) / 1_000_000; // DEBUG: End timer
-                            plugin.getDebugLogger().log("Cache is ready for " + player.getName() + ". (Load time: " + duration + "ms)");
+                            plugin.getDebugLogger().log(
+                                    "Cache is ready for " + player.getName() + ". (Load time: " + duration + "ms)");
                         } finally {
                             dataLockManager.unlock(player.getUniqueId());
                             plugin.getDebugLogger().log("Data lock released for " + player.getName());
@@ -163,47 +176,69 @@ public class EnderChestManager {
     }
 
     // Save player data when they leave the server.
+    // IMPORTANT: This method MUST NOT block the main/region thread to prevent
+    // deadlocks!
     public void onPlayerQuit(Player player) {
         // Stop tracking this inventory as it's being closed
         openInventories.remove(player.getUniqueId());
+        final UUID playerUuid = player.getUniqueId();
+        final String playerName = player.getName();
 
-        if (!dataLockManager.lock(player.getUniqueId())) {
-            plugin.getDebugLogger().log("Player " + player.getName() + " quit, but data is locked. Skipping quit-save.");
+        if (!dataLockManager.lock(playerUuid)) {
+            plugin.getDebugLogger().log("Player " + playerName + " quit, but data is locked. Skipping quit-save.");
             return;
         }
 
-        plugin.getDebugLogger().log("Player " + player.getName() + " quit. Data lock acquired for saving.");
-        Inventory inv = liveData.getIfPresent(player.getUniqueId());
+        plugin.getDebugLogger().log("Player " + playerName + " quit. Data lock acquired for saving.");
+        Inventory inv = liveData.getIfPresent(playerUuid);
         if (inv != null) {
-            try {
-                // Use join() to wait for save to complete before player fully disconnects
-                // This prevents data loss during server shutdown/restart
-                saveEnderChest(player.getUniqueId(), player.getName(), inv).join();
-                plugin.getDebugLogger().log("Quit-save for " + player.getName() + " complete.");
-            } catch (Exception e) {
-                plugin.getLogger().severe("Failed to save data for " + player.getName() + " on quit: " + e.getMessage());
-                e.printStackTrace();
-            } finally {
-                liveData.invalidate(player.getUniqueId());
-                dataLockManager.unlock(player.getUniqueId());
-                plugin.getDebugLogger().log("Lock released for " + player.getName());
-            }
+            // Clone inventory contents to prevent concurrent modification
+            ItemStack[] contents = inv.getContents().clone();
+            int size = inv.getSize();
+
+            // Invalidate cache immediately to prevent double-save
+            liveData.invalidate(playerUuid);
+
+            // Save asynchronously with timeout - DO NOT BLOCK the main thread!
+            plugin.getStorageManager().getStorage()
+                    .saveEnderChest(playerUuid, playerName, size, cleanInventoryForSave(contents))
+                    .orTimeout(10, TimeUnit.SECONDS)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            if (ex instanceof TimeoutException) {
+                                plugin.getLogger().warning("Quit-save for " + playerName
+                                        + " timed out. Data will be recovered from auto-save.");
+                            } else {
+                                plugin.getLogger().severe(
+                                        "Failed to save data for " + playerName + " on quit: " + ex.getMessage());
+                            }
+                        } else {
+                            plugin.getDebugLogger().log("Quit-save for " + playerName + " complete.");
+                        }
+                        dataLockManager.unlock(playerUuid);
+                        plugin.getDebugLogger().log("Lock released for " + playerName);
+                    });
         } else {
-            dataLockManager.unlock(player.getUniqueId());
+            dataLockManager.unlock(playerUuid);
         }
     }
 
     public void shutdown() {
-        if (autoSaveTask != null) { autoSaveTask.cancel();}
-        if (inventoryTrackerTask != null) inventoryTrackerTask.cancel(); // Cancel the inventory tracker task
+        if (autoSaveTask != null) {
+            autoSaveTask.cancel();
+        }
+        if (inventoryTrackerTask != null)
+            inventoryTrackerTask.cancel(); // Cancel the inventory tracker task
 
         plugin.getLogger().info("Auto-save task cancelled. Saving all cached player data before shutting down...");
 
         try {
-            // Use join() to block and wait for all saves to complete
-            // This is critical to prevent data loss on server shutdown
-            shutdownSave().join();
+            // Use timeout to prevent hanging during shutdown
+            // 30 seconds should be enough for most cases, but won't block forever
+            shutdownSave().get(30, TimeUnit.SECONDS);
             plugin.getLogger().info("All player data has been saved successfully.");
+        } catch (TimeoutException e) {
+            plugin.getLogger().warning("Shutdown save timed out after 30 seconds. Some data may not have been saved.");
         } catch (Exception e) {
             plugin.getLogger().severe("Error during shutdown save: " + e.getMessage());
             e.printStackTrace();
@@ -275,7 +310,8 @@ public class EnderChestManager {
 
     // Resize the inventory - Use overflow storage for items beyond permission
     private Inventory resizeInventory(Player player, Inventory oldInv, int newSize) {
-        plugin.getDebugLogger().log("Resizing " + player.getName() + "'s inventory. Old: " + oldInv.getSize() + ", New Size: " + newSize);
+        plugin.getDebugLogger().log(
+                "Resizing " + player.getName() + "'s inventory. Old: " + oldInv.getSize() + ", New Size: " + newSize);
         ItemStack[] oldContents = oldInv.getContents();
 
         Component title = EnderChestUtils.getTitle(player);
@@ -307,96 +343,105 @@ public class EnderChestManager {
         if (!overflowItems.isEmpty()) {
             // Load existing overflow items and merge them
             plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
-                .thenAccept(existingOverflow -> {
-                    List<ItemStack> mergedOverflow = new ArrayList<>(overflowItems);
+                    .thenAccept(existingOverflow -> {
+                        List<ItemStack> mergedOverflow = new ArrayList<>(overflowItems);
 
-                    // Add existing overflow items to the list
-                    if (existingOverflow != null && existingOverflow.length > 0) {
-                        for (ItemStack item : existingOverflow) {
-                            if (item != null && item.getType() != Material.AIR) {
-                                mergedOverflow.add(item);
+                        // Add existing overflow items to the list
+                        if (existingOverflow != null && existingOverflow.length > 0) {
+                            for (ItemStack item : existingOverflow) {
+                                if (item != null && item.getType() != Material.AIR) {
+                                    mergedOverflow.add(item);
+                                }
                             }
+                            plugin.getDebugLogger().log("Merged " + existingOverflow.length
+                                    + " existing overflow items with " + overflowItems.size() + " new items");
                         }
-                        plugin.getDebugLogger().log("Merged " + existingOverflow.length + " existing overflow items with " + overflowItems.size() + " new items");
-                    }
 
-                    // Save merged overflow items
-                    ItemStack[] mergedArray = mergedOverflow.toArray(new ItemStack[0]);
-                    plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), mergedArray)
-                        .thenRun(() -> {
-                            plugin.getDebugLogger().log("Saved " + mergedOverflow.size() + " total overflow items for " + player.getName());
+                        // Save merged overflow items
+                        ItemStack[] mergedArray = mergedOverflow.toArray(new ItemStack[0]);
+                        plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), mergedArray)
+                                .thenRun(() -> {
+                                    plugin.getDebugLogger().log("Saved " + mergedOverflow.size()
+                                            + " total overflow items for " + player.getName());
 
-                            // Notify player once
-                            if (!notifiedOverflowPlayers.contains(player.getUniqueId())) {
-                                Scheduler.runEntityTask(player, () -> {
-                                    LocaleManager locale = plugin.getLocaleManager();
-                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-saved"));
-                                    player.sendMessage(locale.getPrefixedComponent("messages.overflow-will-restore"));
+                                    // Notify player once
+                                    if (!notifiedOverflowPlayers.contains(player.getUniqueId())) {
+                                        Scheduler.runEntityTask(player, () -> {
+                                            LocaleManager locale = plugin.getLocaleManager();
+                                            player.sendMessage(
+                                                    locale.getPrefixedComponent("messages.overflow-items-saved"));
+                                            player.sendMessage(
+                                                    locale.getPrefixedComponent("messages.overflow-will-restore"));
+                                        });
+                                        notifiedOverflowPlayers.add(player.getUniqueId());
+                                    }
                                 });
-                                notifiedOverflowPlayers.add(player.getUniqueId());
-                            }
-                        });
-                });
+                    });
         } else {
             // Try to restore overflow items if player has enough space now
             restoreOverflowItems(player, newInv);
         }
 
-        plugin.getDebugLogger().log("Resize complete. New inventory size: " + newInv.getSize() + ", Overflow items: " + overflowItems.size());
+        plugin.getDebugLogger().log("Resize complete. New inventory size: " + newInv.getSize() + ", Overflow items: "
+                + overflowItems.size());
         return newInv;
     }
 
     // Restore overflow items when player gains more space
     private void restoreOverflowItems(Player player, Inventory inv) {
         plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
-            .thenAccept(overflowItems -> {
-                if (overflowItems == null || overflowItems.length == 0) {
-                    return;
-                }
+                .thenAccept(overflowItems -> {
+                    if (overflowItems == null || overflowItems.length == 0) {
+                        return;
+                    }
 
-                Scheduler.runEntityTask(player, () -> {
-                    List<ItemStack> remainingOverflow = new ArrayList<>();
-                    final List<ItemStack> restoredItems = new ArrayList<>();
+                    Scheduler.runEntityTask(player, () -> {
+                        List<ItemStack> remainingOverflow = new ArrayList<>();
+                        final List<ItemStack> restoredItems = new ArrayList<>();
 
-                    for (ItemStack item : overflowItems) {
-                        if (item == null || item.getType() == Material.AIR) continue;
+                        for (ItemStack item : overflowItems) {
+                            if (item == null || item.getType() == Material.AIR)
+                                continue;
 
-                        // Try to add item to inventory
-                        if (inv.firstEmpty() != -1) {
-                            inv.addItem(item);
-                            restoredItems.add(item);
-                            plugin.getDebugLogger().log("Restored overflow item " + item.getType() + " to " + player.getName());
-                        } else {
-                            remainingOverflow.add(item);
+                            // Try to add item to inventory
+                            if (inv.firstEmpty() != -1) {
+                                inv.addItem(item);
+                                restoredItems.add(item);
+                                plugin.getDebugLogger()
+                                        .log("Restored overflow item " + item.getType() + " to " + player.getName());
+                            } else {
+                                remainingOverflow.add(item);
+                            }
                         }
-                    }
 
-                    final int count = restoredItems.size();
-                    if (count > 0) {
-                        // Update cache
-                        liveData.put(player.getUniqueId(), inv);
+                        final int count = restoredItems.size();
+                        if (count > 0) {
+                            // Update cache
+                            liveData.put(player.getUniqueId(), inv);
 
-                        LocaleManager locale = plugin.getLocaleManager();
-                        player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-restored")
-                            .replaceText(builder -> builder.matchLiteral("<count>").replacement(String.valueOf(count))));
-                    }
+                            LocaleManager locale = plugin.getLocaleManager();
+                            player.sendMessage(locale.getPrefixedComponent("messages.overflow-items-restored")
+                                    .replaceText(builder -> builder.matchLiteral("<count>")
+                                            .replacement(String.valueOf(count))));
+                        }
 
-                    // Update or clear overflow storage
-                    if (remainingOverflow.isEmpty()) {
-                        plugin.getStorageManager().getStorage().clearOverflowItems(player.getUniqueId());
-                        notifiedOverflowPlayers.remove(player.getUniqueId());
-                    } else {
-                        ItemStack[] remaining = remainingOverflow.toArray(new ItemStack[0]);
-                        plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), remaining);
-                    }
+                        // Update or clear overflow storage
+                        if (remainingOverflow.isEmpty()) {
+                            plugin.getStorageManager().getStorage().clearOverflowItems(player.getUniqueId());
+                            notifiedOverflowPlayers.remove(player.getUniqueId());
+                        } else {
+                            ItemStack[] remaining = remainingOverflow.toArray(new ItemStack[0]);
+                            plugin.getStorageManager().getStorage().saveOverflowItems(player.getUniqueId(), remaining);
+                        }
+                    });
                 });
-            });
     }
 
     // Force-save all cached data during server shutdown to prevent data loss.
     private CompletableFuture<Void> shutdownSave() {
         Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
-        if (cacheSnapshot.isEmpty()) return CompletableFuture.completedFuture(null);
+        if (cacheSnapshot.isEmpty())
+            return CompletableFuture.completedFuture(null);
         plugin.getLogger().info("Force-saving data for " + cacheSnapshot.size() + " players...");
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
@@ -431,10 +476,10 @@ public class EnderChestManager {
 
             if (name != null) {
                 CompletableFuture<Void> future = saveEnderChest(uuid, name, entry.getValue())
-                    .exceptionally(ex -> {
-                        plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
-                        return null;
-                    });
+                        .exceptionally(ex -> {
+                            plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                            return null;
+                        });
                 futures.add(future);
             }
         }
@@ -442,7 +487,7 @@ public class EnderChestManager {
         // Wait for all saves to complete to ensure data consistency
         if (!futures.isEmpty()) {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenRun(() -> plugin.getDebugLogger().log("Auto-save completed for all players."));
+                    .thenRun(() -> plugin.getDebugLogger().log("Auto-save completed for all players."));
         }
     }
 
@@ -478,7 +523,8 @@ public class EnderChestManager {
         return cleaned;
     }
 
-    // Save ender chest data with specified size and items, used for offline players.
+    // Save ender chest data with specified size and items, used for offline
+    // players.
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, int size, ItemStack[] items) {
         return plugin.getStorageManager().getStorage().saveEnderChest(uuid, playerName, size, items);
     }
@@ -490,7 +536,8 @@ public class EnderChestManager {
 
     // Tracker for currently open ender chest inventories.
     private void checkOpenInventories() {
-        if (openInventories.isEmpty()) return;
+        if (openInventories.isEmpty())
+            return;
 
         for (UUID uuid : new ArrayList<>(openInventories.keySet())) {
             Player player = Bukkit.getPlayer(uuid);
@@ -524,7 +571,8 @@ public class EnderChestManager {
                 continue;
             }
 
-            // IMPORTANT: Only check if we need to resize, don't resize while player is actively using inventory
+            // IMPORTANT: Only check if we need to resize, don't resize while player is
+            // actively using inventory
             // This prevents race conditions and item duplication
 
             // Check size and title mismatch
@@ -537,9 +585,11 @@ public class EnderChestManager {
             String actualTitle = LegacyComponentSerializer.legacySection().serialize(actualTitleComponent);
             boolean titleMismatched = !expectedTitle.equals(actualTitle);
 
-            // Only resize if there's an actual mismatch and permission changed significantly
+            // Only resize if there's an actual mismatch and permission changed
+            // significantly
             if (sizeMismatched || titleMismatched) {
-                plugin.getDebugLogger().log("Permission/title change detected for " + player.getName() + ". Triggering inventory refresh.");
+                plugin.getDebugLogger().log(
+                        "Permission/title change detected for " + player.getName() + ". Triggering inventory refresh.");
 
                 // Mark as resizing to prevent double-resize
                 resizingPlayers.add(uuid);
@@ -563,15 +613,17 @@ public class EnderChestManager {
                 liveData.put(uuid, resizedInv);
                 plugin.getDebugLogger().log("Resized inventory cached. New size: " + resizedInv.getSize());
 
-                // Save the resized inventory immediately to prevent data loss (async, non-blocking)
+                // Save the resized inventory immediately to prevent data loss (async,
+                // non-blocking)
                 saveEnderChest(uuid, player.getName(), resizedInv)
-                    .exceptionally(ex -> {
-                        plugin.getLogger().warning("Failed to save resized inventory for " + player.getName() + ": " + ex.getMessage());
-                        return null;
-                    })
-                    .thenRun(() -> {
-                        plugin.getDebugLogger().log("Saved resized inventory for " + player.getName());
-                    });
+                        .exceptionally(ex -> {
+                            plugin.getLogger().warning("Failed to save resized inventory for " + player.getName() + ": "
+                                    + ex.getMessage());
+                            return null;
+                        })
+                        .thenRun(() -> {
+                            plugin.getDebugLogger().log("Saved resized inventory for " + player.getName());
+                        });
 
                 // Use a delayed task to prevent issues with immediate reopening
                 Scheduler.runTaskLater(() -> {
@@ -591,7 +643,8 @@ public class EnderChestManager {
         }
     }
 
-    // Reload the cache for a player, useful when their ender chest size or title changes.
+    // Reload the cache for a player, useful when their ender chest size or title
+    // changes.
     public void reloadCacheFor(Player player) {
         int size = EnderChestUtils.getSize(player);
         if (size == 0) {
@@ -604,4 +657,3 @@ public class EnderChestManager {
         plugin.getDebugLogger().log("Cache reloaded for player " + player.getName());
     }
 }
-

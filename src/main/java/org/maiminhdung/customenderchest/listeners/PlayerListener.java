@@ -47,9 +47,12 @@ public class PlayerListener implements Listener {
     public void onEnderChestInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
 
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) return;
-        if (event.getClickedBlock().getType() != Material.ENDER_CHEST) return;
-        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-endechest-block")) return;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null)
+            return;
+        if (event.getClickedBlock().getType() != Material.ENDER_CHEST)
+            return;
+        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-endechest-block"))
+            return;
 
         // Cancel the event immediately to prevent vanilla enderchest GUI from opening
         event.setCancelled(true);
@@ -59,7 +62,6 @@ public class PlayerListener implements Listener {
             plugin.getSoundHandler().playSound(player, "fail");
             return;
         }
-
 
         if (!player.isOnline()) {
             return;
@@ -71,8 +73,10 @@ public class PlayerListener implements Listener {
     // Handle inventory clicks to enforce slot restrictions and admin sync
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.isCancelled()) return;
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
+        if (event.isCancelled())
+            return;
 
         syncInventoryChange(player, event.getInventory());
     }
@@ -80,14 +84,17 @@ public class PlayerListener implements Listener {
     // Handle inventory drag events (shift-click, drag multiple items, etc.)
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.isCancelled()) return;
+        if (!(event.getWhoClicked() instanceof Player player))
+            return;
+        if (event.isCancelled())
+            return;
 
         syncInventoryChange(player, event.getInventory());
     }
 
     /**
-     * Syncs inventory changes bidirectionally between admin views and player inventories
+     * Syncs inventory changes bidirectionally between admin views and player
+     * inventories
      */
     private void syncInventoryChange(Player player, Inventory clickedInv) {
         EnderChestManager manager = plugin.getEnderChestManager();
@@ -132,8 +139,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) return;
-        if (!player.isOnline()) return;
+        if (!(event.getPlayer() instanceof Player player))
+            return;
+        if (!player.isOnline())
+            return;
 
         EnderChestManager manager = plugin.getEnderChestManager();
         Inventory closedInventory = event.getInventory();
@@ -145,7 +154,8 @@ public class PlayerListener implements Listener {
         if (manager.getAdminViewedChests().containsKey(closedInventory)) {
             UUID targetUUID = manager.getAdminViewedChests().remove(closedInventory);
 
-            if (targetUUID == null) return;
+            if (targetUUID == null)
+                return;
 
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
@@ -174,17 +184,20 @@ public class PlayerListener implements Listener {
                     targetName = Bukkit.getOfflinePlayer(targetUUID).getName();
                 }
 
-                // Save to database async
+                // Save to database async with timeout - DO NOT block!
                 String finalTargetName = targetName;
-                Scheduler.runTaskAsync(() -> {
-                    try {
-                        manager.saveEnderChest(targetUUID, finalTargetName, closedInventory).join();
-                        debug.log("Data for player " + finalTargetName + " saved successfully by admin.");
-                    } finally {
-                        // Unlock in a finally block to guarantee it's called
-                        dataLockManager.unlock(targetUUID);
-                    }
-                });
+                manager.saveEnderChest(targetUUID, finalTargetName, closedInventory)
+                        .orTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                        .whenComplete((result, ex) -> {
+                            if (ex != null) {
+                                plugin.getLogger().warning(
+                                        "Failed to save admin edit for " + finalTargetName + ": " + ex.getMessage());
+                            } else {
+                                debug.log("Data for player " + finalTargetName + " saved successfully by admin.");
+                            }
+                            // Unlock in whenComplete to guarantee it's called
+                            dataLockManager.unlock(targetUUID);
+                        });
 
                 plugin.getSoundHandler().playSound(player, "close");
 
@@ -201,7 +214,8 @@ public class PlayerListener implements Listener {
         if (closedInventory.equals(cachedInv)) {
             plugin.getSoundHandler().playSound(player, "close");
 
-            // Save data immediately when player closes their ender chest to prevent data loss
+            // Save data immediately when player closes their ender chest to prevent data
+            // loss
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
             // Only save if not currently locked (prevent double-save)
@@ -210,14 +224,14 @@ public class PlayerListener implements Listener {
 
                 // Save asynchronously without blocking - let CompletableFuture handle it
                 manager.saveEnderChest(player.getUniqueId(), player.getName(), closedInventory)
-                    .exceptionally(ex -> {
-                        plugin.getLogger().severe("Failed to save data for " + player.getName() +
-                            " after closing inventory: " + ex.getMessage());
-                        return null;
-                    })
-                    .thenRun(() -> {
-                        debug.log("Data for " + player.getName() + " saved after closing inventory.");
-                    });
+                        .exceptionally(ex -> {
+                            plugin.getLogger().severe("Failed to save data for " + player.getName() +
+                                    " after closing inventory: " + ex.getMessage());
+                            return null;
+                        })
+                        .thenRun(() -> {
+                            debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                        });
             }
         }
     }
