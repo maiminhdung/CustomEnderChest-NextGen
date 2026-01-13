@@ -35,12 +35,23 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
-        plugin.getEnderChestManager().onPlayerJoin(event.getPlayer());
+        Player player = event.getPlayer();
+        plugin.getEnderChestManager().onPlayerJoin(player);
+
+        // Trigger auto-import of vanilla ender chest data after a short delay
+        // to ensure player data is fully loaded
+        Scheduler.runEntityTaskLater(player, () -> {
+            if (player.isOnline()) {
+                plugin.getLegacyImporter().autoImportOnJoin(player);
+            }
+        }, 40L); // 2 second delay to ensure data is loaded
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         plugin.getEnderChestManager().onPlayerQuit(event.getPlayer());
+        // Clear auto-import tracking when player quits
+        plugin.getLegacyImporter().clearAutoImportTracking(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -63,11 +74,38 @@ public class PlayerListener implements Listener {
             return;
         }
 
+        // Check permission to open ender chest via block
+        if (!hasBlockOpenPermission(player)) {
+            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission-block-open"));
+            plugin.getSoundHandler().playSound(player, "fail");
+            return;
+        }
+
         if (!player.isOnline()) {
             return;
         }
         // Let the EnderChestManager handle the permission check logic now
         plugin.getEnderChestManager().openEnderChest(player);
+    }
+
+    /**
+     * Check if player has permission to open ender chest via block interaction.
+     * Returns true if player is OP, has CustomEnderChest.block.open permission,
+     * OR if default-player.allow-open-enderchest is enabled in config.
+     */
+    private boolean hasBlockOpenPermission(Player player) {
+        // OP players always have permission
+        if (player.isOp()) {
+            return true;
+        }
+
+        // Check explicit permission
+        if (player.hasPermission("CustomEnderChest.block.open")) {
+            return true;
+        }
+
+        // Check default-player config setting
+        return plugin.getConfig().getBoolean("default-player.allow-open-enderchest", true);
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync

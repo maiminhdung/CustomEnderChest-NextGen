@@ -3,6 +3,7 @@ prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
 
 messages:
   no-permission: "<red>You don't have permission for that.</red>"
+  no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>This command can only be run by a player.</red>"
   reload-success: "<green>Configuration and language files have been reloaded.</green>"
   data-still-loading: "<yellow>Your data is still loading, please wait a moment...</yellow>"
@@ -41,8 +42,8 @@ levels:
   '5': "&d&lLevel 6" # 6 rows (54 slots)
 
 import:
-  started: "<green>Starting import from legacy flat files. This may take a while..."
-  progress: "<gray>Import progress: <yellow><processed>/<total></yellow> files processed."
-  no-folder: "<red>Could not find the old 'PlayerData' folder to import from."
-  complete: "<green>Data import complete! <white><imported></white> legacy profiles imported."
-  error: "<red>Failed to import file <yellow><file></yellow>. See console for details."
+  started: "<green>Starting vanilla ender chest import for all online players..."
+  complete: "<green>Import complete! <white><imported></white> players imported, <white><skipped></white> skipped."
+  auto-import-started: "<yellow>Auto-importing your vanilla ender chest items..."
+  auto-import-complete: "<green>Auto-import complete! <white><count></white> items imported from vanilla ender chest."
+  auto-import-failed: "<red>Failed to auto-import your vanilla ender chest data. Please contact an admin."

@@ -3,6 +3,7 @@ prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
 
 messages:
   no-permission: "<red>Je hebt daar geen toestemming voor.</red>"
+  no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>Dit commando kan alleen door een speler worden uitgevoerd.</red>"
   reload-success: "<green>Configuratie- en taal bestanden zijn opnieuw geladen.</green>"
   data-still-loading: "<yellow>Je gegevens worden nog geladen, even geduld a.u.b...</yellow>"
@@ -41,8 +42,8 @@ levels:
   '5': "&d&lLevel 6" # 6 rij (54 slots)
 
 import:
-  started: "<green>Beginnen met importeren vanuit legacy platte bestanden. Dit kan even duren..."
-  progress: "<gray>Import progressie: <yellow><processed>/<total></yellow> bestanden verwerkt."
-  no-folder: "<red>De oude map ‘PlayerData’ om te importeren kon niet worden gevonden."
-  complete: "<green>Data import compleet! <white><imported></white> legacy profielen geïmporteerd."
-  error: "<red>Niet gelukt om de bestanden te importeren <yellow><file></yellow>. Bekijk de console voor details."
+  started: "<green>Starting vanilla ender chest import for all online players..."
+  complete: "<green>Import complete! <white><imported></white> players imported, <white><skipped></white> skipped."
+  auto-import-started: "<yellow>Auto-importing your vanilla ender chest items..."
+  auto-import-complete: "<green>Auto-import complete! <white><count></white> items imported from vanilla ender chest."
+  auto-import-failed: "<red>Failed to auto-import your vanilla ender chest data. Please contact an admin."

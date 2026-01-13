@@ -279,4 +279,21 @@ public class MySQLStorage implements StorageInterface {
             return false;
         });
     }
+
+    @Override
+    public CompletableFuture<Boolean> hasData(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT 1 FROM `" + tableName + "` WHERE `player_uuid` = ? LIMIT 1";
+            try (Connection conn = storageManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, playerUUID.toString());
+                ResultSet rs = ps.executeQuery();
+                return rs.next();
+            } catch (Exception e) {
+                EnderChest.getInstance().getLogger().warning(
+                        "[MySQLStorage] Failed to check data existence for " + playerUUID + ": " + e.getMessage());
+            }
+            return false;
+        });
+    }
 }

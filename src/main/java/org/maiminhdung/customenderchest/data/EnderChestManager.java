@@ -656,4 +656,33 @@ public class EnderChestManager {
         liveData.put(player.getUniqueId(), newInv);
         plugin.getDebugLogger().log("Cache reloaded for player " + player.getName());
     }
+
+    /**
+     * Update the cache for a player with specific items.
+     * Used by import functionality to update cache with imported items.
+     *
+     * @param player The player to update cache for
+     * @param items The items to set in the cache
+     */
+    public void updateCacheWithItems(Player player, ItemStack[] items) {
+        int size = EnderChestUtils.getSize(player);
+        if (size == 0) {
+            liveData.invalidate(player.getUniqueId());
+            return;
+        }
+        Component title = EnderChestUtils.getTitle(player);
+        Inventory newInv = Bukkit.createInventory(player, size, title);
+
+        // Set items, respecting the inventory size
+        if (items != null) {
+            for (int i = 0; i < Math.min(items.length, size); i++) {
+                if (items[i] != null) {
+                    newInv.setItem(i, items[i]);
+                }
+            }
+        }
+
+        liveData.put(player.getUniqueId(), newInv);
+        plugin.getDebugLogger().log("Cache updated with items for player " + player.getName());
+    }
 }

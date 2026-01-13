@@ -3,11 +3,43 @@ package org.maiminhdung.customenderchest.utils;
 import org.maiminhdung.customenderchest.EnderChest;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 public class EnderChestUtils {
 
     private static final EnderChest plugin = EnderChest.getInstance();
+
+    /**
+     * Get the ender chest size for an OfflinePlayer.
+     * If the player is online, permission checks are performed.
+     * If offline, returns the default size from config.
+     *
+     * @param offlinePlayer The offline player
+     * @return The permitted ender chest size
+     */
+    public static int getSize(OfflinePlayer offlinePlayer) {
+        if (offlinePlayer == null) {
+            return 0;
+        }
+
+        // If the player is online, use the online player method with permission checks
+        if (offlinePlayer.isOnline() && offlinePlayer.getPlayer() != null) {
+            return getSize(offlinePlayer.getPlayer());
+        }
+
+        // For offline players, we cannot check permissions
+        // Return the default size from config, or max size (54) as fallback
+        if (plugin.config().getBoolean("default-player.enabled")) {
+            int defaultSize = plugin.config().getInt("default-player.size", 27);
+            if (defaultSize > 0 && defaultSize % 9 == 0 && defaultSize <= 54) {
+                return defaultSize;
+            }
+        }
+
+        // Return vanilla ender chest size (27 slots = 3 rows) as fallback for offline players
+        return 27;
+    }
 
     public static int getSize(Player player) {
         if (player == null) {

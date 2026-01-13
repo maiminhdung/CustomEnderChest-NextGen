@@ -2,6 +2,10 @@ package org.maiminhdung.customenderchest.storage;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.storage.impl.H2Storage;
 import org.maiminhdung.customenderchest.storage.impl.MySQLStorage;
@@ -10,6 +14,7 @@ import org.maiminhdung.customenderchest.storage.impl.YmlStorage;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.UUID;
 
 public class StorageManager {
 
@@ -77,7 +82,7 @@ public class StorageManager {
             this.dataSource = new HikariDataSource(config);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().severe("MySQL connection error: " + e.getMessage());
             return false;
         }
     }
@@ -108,7 +113,7 @@ public class StorageManager {
             this.dataSource = new HikariDataSource(config);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().severe("H2 connection error: " + e.getMessage());
             return false;
         }
     }
@@ -138,5 +143,25 @@ public class StorageManager {
      */
     public StorageInterface getStorage() {
         return this.storageImplementation;
+    }
+
+    public Inventory getVanillaEnderChest(UUID playerUUID) {
+        OfflinePlayer player = Bukkit.getOfflinePlayer(playerUUID);
+        if (!player.hasPlayedBefore()) {
+            plugin.getDebugLogger().log("Player has never played before: " + playerUUID);
+            return null;
+        }
+
+        // If the player is online, get their ender chest directly
+        if (player.isOnline() && player.getPlayer() != null) {
+            plugin.getDebugLogger().log("Player is online, getting ender chest directly: " + player.getName());
+            return player.getPlayer().getEnderChest();
+        }
+
+        // For offline players, we cannot access their vanilla ender chest without NMS
+        // The player needs to be online for vanilla import
+        plugin.getDebugLogger().log("Player is offline, cannot access vanilla ender chest: " + player.getName() +
+                " (UUID: " + playerUUID + "). Player must be online for vanilla import.");
+        return null;
     }
 }

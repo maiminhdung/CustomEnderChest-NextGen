@@ -5,6 +5,7 @@ prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
 
 messages:
   no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
+  no-permission-block-open: "<red>Bạn không có quyền để mở rương Ender.</red>"
   players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
   reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
   data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
@@ -44,8 +45,8 @@ levels:
   '5': "&d&lCấp 6" # 6 hàng (54 ô)
 
 import:
-  started: "<green>Bắt đầu nhập dữ liệu từ file cũ. Quá trình này có thể mất một lúc..."
-  progress: "<gray>Tiến trình nhập: Đã xử lý <yellow><processed>/<total></yellow> file."
-  no-folder: "<red>Không tìm thấy thư mục 'PlayerData' cũ để nhập dữ liệu."
-  complete: "<green>Nhập dữ liệu hoàn tất! Đã nhập <white><imported></white> hồ sơ."
-  error: "<red>Không thể chuyển hóa file <yellow><file></yellow>. Vui lòng kiểm tra console."
+  started: "<green>Bắt đầu chuyển dữ liệu vanilla sang plugin cho tất cả người chơi trực tuyến..."
+  complete: "<green>Chuyển hoàn tất! Đã chuyển cho <white><imported></white> người chơi, bỏ qua <white><skipped></white>."
+  auto-import-started: "<yellow>Đang tự động chuyển vật phẩm từ rương ender vanilla của bạn..."
+  auto-import-complete: "<green>Tự động chuyển hoàn tất! Đã chuyển <white><count></white> vật phẩm từ rương ender vanilla."
+  auto-import-failed: "<red>Không thể tự động chuyển dữ liệu rương ender vanilla. Vui lòng liên hệ admin."

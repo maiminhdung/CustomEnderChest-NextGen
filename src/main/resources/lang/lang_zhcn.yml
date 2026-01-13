@@ -2,6 +2,7 @@
 prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
 messages:
   no-permission: "<red>你没有权限使用这个。</red>"
+  no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>该命令只能由玩家执行。</red>"
   reload-success: "<green>配置与语言文件重载完毕。</green>"
   data-still-loading: "<yellow>数据仍在载入，请稍候...</yellow>"
@@ -33,3 +34,10 @@ levels:
   '3': "&e四阶" # 4 行（36 格）
   '4': "&6五阶" # 5 行（45 格）
   '5': "&d&l六阶" # 6 行（54 格）
+
+import:
+  started: "<green>Starting vanilla ender chest import for all online players..."
+  complete: "<green>Import complete! <white><imported></white> players imported, <white><skipped></white> skipped."
+  auto-import-started: "<yellow>Auto-importing your vanilla ender chest items..."
+  auto-import-complete: "<green>Auto-import complete! <white><count></white> items imported from vanilla ender chest."
+  auto-import-failed: "<red>Failed to auto-import your vanilla ender chest data. Please contact an admin."

@@ -53,7 +53,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             // Admin commands always require specific permissions (handled in their methods)
             boolean isAdminCommand = args.length > 0 &&
                 (args[0].equalsIgnoreCase("reload") ||
-                 args[0].equalsIgnoreCase("importlegacy") ||
+                 args[0].equalsIgnoreCase("import") ||
                  args[0].equalsIgnoreCase("delete") ||
                  args[0].equalsIgnoreCase("convertall"));
 
@@ -77,14 +77,13 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             case "reload":
                 handleReload(sender);
                 break;
-            case "importlegacy":
-                handleImport(sender);
+            case "import":
+                handleImport(sender, args);
                 break;
             case "delete":
                 handleDelete(sender, args, label);
                 break;
             case "convertall":
-                // Delegate to ConvertAllCommand
                 convertAllCommand.onCommand(sender, command, label, args);
                 break;
             default:
@@ -228,15 +227,29 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec importlegacy command
-     * Imports data from old plugin versions
+     * Handle /cec import command
+     * Imports vanilla ender chest data for all online players (admin only)
      */
-    private void handleImport(CommandSender sender) {
+    private void handleImport(CommandSender sender, String[] args) {
         if (!sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             return;
         }
-        legacyImporter.runImport(sender);
+
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.import-usage"));
+            return;
+        }
+
+        String importType = args[1].toLowerCase();
+        switch (importType) {
+            case "vanilla":
+                legacyImporter.runVanillaImportAll(sender);
+                break;
+            default:
+                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.import-invalid-type"));
+                break;
+        }
     }
 
     /**
@@ -314,7 +327,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("CustomEnderChest.command.open.self")) completions.add("open");
             if (sender.hasPermission("CustomEnderChest.admin")) {
                 completions.add("reload");
-                completions.add("importlegacy");
+                completions.add("import");
                 completions.add("delete");
                 completions.add("convertall");
                 completions.add("open");
@@ -323,9 +336,11 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("open") || args[0].equalsIgnoreCase("delete"))) {
-            if (sender.hasPermission("CustomEnderChest.command.open.other")) {
-                return null;
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("open") || args[0].equalsIgnoreCase("delete")) {
+                if (sender.hasPermission("CustomEnderChest.command.open.other")) {
+                    return null;
+                }
             }
         }
         return List.of();

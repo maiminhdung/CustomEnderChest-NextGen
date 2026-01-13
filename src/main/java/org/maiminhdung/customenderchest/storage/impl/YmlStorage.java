@@ -153,4 +153,12 @@ public class YmlStorage implements StorageInterface {
             return config.contains("overflow-items");
         });
     }
+
+    @Override
+    public CompletableFuture<Boolean> hasData(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            File playerFile = getPlayerFile(playerUUID);
+            return playerFile.exists();
+        });
+    }
 }

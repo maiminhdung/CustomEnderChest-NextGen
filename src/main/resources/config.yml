@@ -85,18 +85,28 @@ enderchest-options:
   # Note: If this option is true, don't set true for `disable-enderchest-click` above.
   disable-plugin-on-endechest-block: false
 
-# Default settings for new players
+# Default settings for players
 default-player:
-  # Enable this to give new players a default chest size.
-  # This allows new players to use the Ender Chest block without needing a specific permission.
+  # Enable this to give players a default chest size.
+  # This allows players to use the Ender Chest block without needing a specific permission.
   enabled: true
   # The default chest size (number of slots, must be a multiple of 9, max 54).
   # 27 equals 3 rows, the same as a vanilla Ender Chest.
   # Default permission level is CustomEnderChest.level.3 (27 slots).
   size: 27
-  # Allow new players to use /cec, /ec, /customec commands by default.
+  # Allow players to use /cec, /ec, /customec commands by default.
   # If false, players will need "CustomEnderChest.commands" permission to use commands.
   allow-command: true
+  # Allow players to open their ender chest by right-clicking an Ender Chest block.
+  # If false, players will need "CustomEnderChest.block.open" permission to open via block.
+  allow-open-enderchest: false
+
+# Import settings for vanilla ender chest data
+import:
+  # Automatically import vanilla ender chest items when a player joins
+  # This will transfer items from their vanilla ender chest to the plugin's storage
+  # Items are merged with existing data (vanilla items go to empty slots)
+  auto-import-on-join: false
 
 # Sound customization
 sounds:
