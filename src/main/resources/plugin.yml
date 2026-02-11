@@ -4,7 +4,7 @@ version: 2.1.0
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP
-api-version: 1.21
+api-version: 1.20
 folia-supported: true
 commands:
   customenderchest:
