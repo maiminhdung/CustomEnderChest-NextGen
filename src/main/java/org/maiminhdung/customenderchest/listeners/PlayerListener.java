@@ -68,12 +68,6 @@ public class PlayerListener implements Listener {
         // Cancel the event immediately to prevent vanilla enderchest GUI from opening
         event.setCancelled(true);
 
-        if (plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click")) {
-            player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.enderchest-click-disabled"));
-            plugin.getSoundHandler().playSound(player, "fail");
-            return;
-        }
-
         // Check permission to open ender chest via block
         if (!hasBlockOpenPermission(player)) {
             player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission-block-open"));
@@ -91,7 +85,7 @@ public class PlayerListener implements Listener {
     /**
      * Check if player has permission to open ender chest via block interaction.
      * Returns true if player is OP, has CustomEnderChest.block.open permission,
-     * OR if default-player.allow-open-enderchest is enabled in config.
+     * OR if enderchest-options.disable-enderchest-click is sabled in config.
      */
     private boolean hasBlockOpenPermission(Player player) {
         // OP players always have permission
@@ -104,8 +98,8 @@ public class PlayerListener implements Listener {
             return true;
         }
 
-        // Check default-player config setting
-        return plugin.getConfig().getBoolean("default-player.allow-open-enderchest", true);
+        // Check disable-enderchest-click config setting
+        return plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click", true);
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync

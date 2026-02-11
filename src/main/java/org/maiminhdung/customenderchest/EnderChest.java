@@ -78,7 +78,7 @@ public final class EnderChest extends JavaPlugin {
         configUpdater.checkAndUpdateConfig();
         reloadConfig();
 
-        // Register listeners and commands
+		// Register listeners and commands
 		this.getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
 		// Register commands and tab completer
 		EnderChestCommand commandExecutor = new EnderChestCommand(this);
@@ -87,6 +87,7 @@ public final class EnderChest extends JavaPlugin {
 			command.setExecutor(commandExecutor);
 			command.setTabCompleter(commandExecutor);
 		}
+
 
 
 		// Bstats Metrics

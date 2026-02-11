@@ -111,7 +111,7 @@ public class LegacyImporter {
                         plugin.getDebugLogger().log("Player " + player.getName() + " already has data in database, skipping auto-import to prevent duplication");
                         // Mark as imported to prevent future checks
                         autoImportedPlayers.add(player.getUniqueId());
-                        return CompletableFuture.completedFuture((Void) null);
+                        return CompletableFuture.completedFuture(null);
                     }
 
                     // Send starting message to player (only if we're actually importing)
@@ -275,7 +275,7 @@ public class LegacyImporter {
                             if (hasExistingData) {
                                 plugin.getDebugLogger().log("Player " + playerName + " already has data in database, skipping import to prevent duplication");
                                 skipped.incrementAndGet();
-                                return CompletableFuture.completedFuture((Void) null);
+                                return CompletableFuture.completedFuture(null);
                             }
 
                             // Create new items array for import

@@ -194,6 +194,12 @@ public final class Scheduler {
             try {
                 io.papermc.paper.threadedregions.scheduler.ScheduledTask task =
                         entity.getScheduler().run(plugin, scheduledTask -> runnable.run(), null);
+                // In Folia, run() returns null if entity is in an unloaded region
+                // The runnable will NEVER execute in this case, causing silent data loss!
+                if (task == null) {
+                    plugin.getLogger().warning("[Folia] Entity task returned null (entity may be in unloaded region). Falling back to global scheduler.");
+                    return runTask(runnable);
+                }
                 return new Task(task);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.WARNING, "Error scheduling entity task in Folia, falling back to global scheduler", e);
@@ -218,6 +224,11 @@ public final class Scheduler {
                 io.papermc.paper.threadedregions.scheduler.ScheduledTask task =
                         entity.getScheduler().runDelayed(plugin, scheduledTask -> runnable.run(), null,
                                 delayTicks < 1 ? 1 : delayTicks);
+                // In Folia, runDelayed() returns null if entity is in an unloaded region
+                if (task == null) {
+                    plugin.getLogger().warning("[Folia] Delayed entity task returned null (entity may be in unloaded region). Falling back to global scheduler.");
+                    return runTaskLater(runnable, delayTicks);
+                }
                 return new Task(task);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.WARNING, "Error scheduling delayed entity task in Folia, falling back to global scheduler", e);
@@ -243,6 +254,11 @@ public final class Scheduler {
                 io.papermc.paper.threadedregions.scheduler.ScheduledTask task =
                         entity.getScheduler().runAtFixedRate(plugin, scheduledTask -> runnable.run(), null,
                                 delayTicks < 1 ? 1 : delayTicks, periodTicks);
+                // In Folia, runAtFixedRate() returns null if entity is in an unloaded region
+                if (task == null) {
+                    plugin.getLogger().warning("[Folia] Timer entity task returned null (entity may be in unloaded region). Falling back to global scheduler.");
+                    return runTaskTimer(runnable, delayTicks, periodTicks);
+                }
                 return new Task(task);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.WARNING, "Error scheduling timer entity task in Folia, falling back to global scheduler", e);

@@ -96,6 +96,30 @@ public class YmlStorage implements StorageInterface {
     }
 
     @Override
+    public CompletableFuture<UUID> findUUIDByName(String playerName) {
+        return CompletableFuture.supplyAsync(() -> {
+            File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+            if (files == null) return null;
+
+            for (File file : files) {
+                try {
+                    YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+                    String storedName = config.getString("player-name");
+                    if (storedName != null && storedName.equalsIgnoreCase(playerName)) {
+                        // Extract UUID from filename (remove .yml extension)
+                        String filename = file.getName();
+                        String uuidStr = filename.substring(0, filename.length() - 4);
+                        return UUID.fromString(uuidStr);
+                    }
+                } catch (Exception e) {
+                    // Skip invalid files
+                }
+            }
+            return null;
+        });
+    }
+
+    @Override
     public CompletableFuture<Void> saveOverflowItems(UUID playerUUID, ItemStack[] items) {
         return CompletableFuture.runAsync(() -> {
             File playerFile = getPlayerFile(playerUUID);
@@ -159,6 +183,126 @@ public class YmlStorage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             File playerFile = getPlayerFile(playerUUID);
             return playerFile.exists();
+        });
+    }
+
+    @Override
+    public CompletableFuture<StorageStats> getStorageStats() {
+        return CompletableFuture.supplyAsync(() -> {
+            int totalPlayers = 0;
+            int playersWithItems = 0;
+            int totalItems = 0;
+            int totalOverflowPlayers = 0;
+            int totalOverflowItems = 0;
+            long totalDataSize = 0;
+
+            File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+            if (files == null) {
+                return new StorageStats(0, 0, 0, 0, 0, 0);
+            }
+
+            for (File file : files) {
+                totalPlayers++;
+                totalDataSize += file.length();
+
+                try {
+                    YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("enderchest-inventory");
+
+                    if (serializedItems != null && !serializedItems.isEmpty()) {
+                        ItemStack[] items = ItemSerializer.deserialize(serializedItems);
+                        if (items != null) {
+                            boolean hasAnyItem = false;
+                            for (ItemStack item : items) {
+                                if (item != null && !item.getType().isAir()) {
+                                    totalItems++;
+                                    hasAnyItem = true;
+                                }
+                            }
+                            if (hasAnyItem) {
+                                playersWithItems++;
+                            }
+                        }
+                    }
+
+                    // Check overflow
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> overflowItems = (List<Map<String, Object>>) config.getList("overflow-items");
+                    if (overflowItems != null && !overflowItems.isEmpty()) {
+                        totalOverflowPlayers++;
+                        ItemStack[] items = ItemSerializer.deserialize(overflowItems);
+                        if (items != null) {
+                            for (ItemStack item : items) {
+                                if (item != null && !item.getType().isAir()) {
+                                    totalOverflowItems++;
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    EnderChest.getInstance().getLogger().warning("[YmlStorage] Failed to read file " + file.getName() + ": " + e.getMessage());
+                }
+            }
+
+            return new StorageStats(totalPlayers, playersWithItems, totalItems,
+                    totalOverflowPlayers, totalOverflowItems, totalDataSize);
+        });
+    }
+
+    @Override
+    public CompletableFuture<java.util.List<PlayerDataInfo>> getPlayersWithItems() {
+        return CompletableFuture.supplyAsync(() -> {
+            java.util.List<PlayerDataInfo> result = new java.util.ArrayList<>();
+
+            File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+            if (files == null) {
+                return result;
+            }
+
+            for (File file : files) {
+                try {
+                    String fileName = file.getName().replace(".yml", "");
+                    UUID uuid = UUID.fromString(fileName);
+
+                    YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+                    String name = config.getString("player-name", "Unknown");
+                    int size = config.getInt("enderchest-size", 0);
+
+                    int itemCount = 0;
+                    boolean isCorrupted = false;
+                    String errorMessage = null;
+
+                    try {
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("enderchest-inventory");
+
+                        if (serializedItems != null) {
+                            ItemStack[] items = ItemSerializer.deserialize(serializedItems);
+                            if (items != null) {
+                                for (ItemStack item : items) {
+                                    if (item != null && !item.getType().isAir()) {
+                                        itemCount++;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        isCorrupted = true;
+                        errorMessage = e.getMessage();
+                    }
+
+                    // Check for overflow
+                    boolean hasOverflow = config.contains("overflow-items");
+
+                    result.add(new PlayerDataInfo(uuid, name, size, itemCount, hasOverflow, isCorrupted, errorMessage));
+                } catch (Exception e) {
+                    EnderChest.getInstance().getLogger().warning("[YmlStorage] Failed to parse file " + file.getName() + ": " + e.getMessage());
+                }
+            }
+
+            return result;
         });
     }
 }

@@ -10,7 +10,6 @@ messages:
   reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
   data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
   data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
-  enderchest-click-disabled: "<red>Vui lòng sử dụng lệnh để mở EnderChest hay vì sử dụng rương.</red>"
   save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
   invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
 
@@ -18,6 +17,7 @@ messages:
   migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5+)."
   migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
   migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
+  data-migrated: "<green>Dữ liệu rương ender của bạn đã được chuyển sang tài khoản mới."
 
   # Overflow messages
   overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."

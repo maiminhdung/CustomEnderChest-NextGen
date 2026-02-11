@@ -5,7 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.storage.impl.H2Storage;
 import org.maiminhdung.customenderchest.storage.impl.MySQLStorage;

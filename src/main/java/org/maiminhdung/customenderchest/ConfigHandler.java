@@ -38,4 +38,8 @@ public class ConfigHandler {
         return config.getBoolean(path);
     }
 
+    public boolean getBoolean(String path, boolean def) {
+        return config.getBoolean(path, def);
+    }
+
 }

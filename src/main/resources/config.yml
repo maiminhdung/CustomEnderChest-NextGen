@@ -76,7 +76,8 @@ storage:
 # Ender Chest gameplay options
 enderchest-options:
   # Disable opening the custom ender chest by right-clicking an Ender Chest block.
-  # Useful if you only want players to open the chest via command.
+  # Useful if you only want players to open the chest via command or players will need
+  # "CustomEnderChest.block.open" permission to open via block.
   # Note: If this option is true, don't set true for `disable-plugin-on-endechest-block` below.
   disable-enderchest-click: false
   # Disable the plugin's functionality when interacting with an Ender Chest block.
@@ -97,9 +98,6 @@ default-player:
   # Allow players to use /cec, /ec, /customec commands by default.
   # If false, players will need "CustomEnderChest.commands" permission to use commands.
   allow-command: true
-  # Allow players to open their ender chest by right-clicking an Ender Chest block.
-  # If false, players will need "CustomEnderChest.block.open" permission to open via block.
-  allow-open-enderchest: false
 
 # Import settings for vanilla ender chest data
 import:

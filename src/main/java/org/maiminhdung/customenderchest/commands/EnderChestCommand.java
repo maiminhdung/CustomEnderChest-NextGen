@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 /**
  * Main command handler for CustomEnderChest plugin
- * Handles all /cec subcommands including open, reload, delete, convertall, etc.
+ * Handles all /cec subcommands including open, reload, delete, convertall, stats, etc.
  */
 public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
@@ -55,7 +55,8 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 (args[0].equalsIgnoreCase("reload") ||
                  args[0].equalsIgnoreCase("import") ||
                  args[0].equalsIgnoreCase("delete") ||
-                 args[0].equalsIgnoreCase("convertall"));
+                 args[0].equalsIgnoreCase("convertall") ||
+                 args[0].equalsIgnoreCase("stats"));
 
             if (!isAdminCommand && !hasCommandPermission(p)) {
                 p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -242,13 +243,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
 
         String importType = args[1].toLowerCase();
-        switch (importType) {
-            case "vanilla":
-                legacyImporter.runVanillaImportAll(sender);
-                break;
-            default:
-                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.import-invalid-type"));
-                break;
+        if (importType.equals("vanilla")) {
+            legacyImporter.runVanillaImportAll(sender);
+        } else {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.import-invalid-type"));
         }
     }
 
@@ -330,6 +328,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 completions.add("import");
                 completions.add("delete");
                 completions.add("convertall");
+                completions.add("stats");
                 completions.add("open");
             }
             return completions.stream()
@@ -341,6 +340,15 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 if (sender.hasPermission("CustomEnderChest.command.open.other")) {
                     return null;
                 }
+            }
+            // Stats subcommand completions
+            if (args[0].equalsIgnoreCase("stats") && sender.hasPermission("CustomEnderChest.admin")) {
+                List<String> statsCompletions = new ArrayList<>();
+                statsCompletions.add("validate");
+                statsCompletions.add("help");
+                return statsCompletions.stream()
+                        .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
             }
         }
         return List.of();

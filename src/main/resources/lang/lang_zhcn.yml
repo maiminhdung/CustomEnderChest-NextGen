@@ -7,13 +7,13 @@ messages:
   reload-success: "<green>配置与语言文件重载完毕。</green>"
   data-still-loading: "<yellow>数据仍在载入，请稍候...</yellow>"
   data-busy: "<red>玩家数据库繁忙，请稍后再试。</red>"
-  enderchest-click-disabled: "<red>请使用命令打开高级末影箱。</red>"
   save-error: "<red>保存数据时出错，请检查控制台。</red>"
   invalid-player: "<red>玩家名称无效。</red>"
   # 迁移相关消息
   migration-data-incompatible: "<yellow>警告：末影箱数据与新服务器版本（1.21.5+）不兼容。"
   migration-data-cleared: "<yellow>出于兼容性考虑，你的末影箱数据已被重置。旧数据仍然保留在数据库中。"
   migration-contact-admin: "<gray>若需要恢复丢失的物品，请联系管理员。"
+  data-migrated: "<green>Your enderchest data has been migrated to your new account."
   # 溢出相关消息
   overflow-items-saved: "<yellow>⚠ 部分当前权限不能存取的物品已转移到溢出仓库。"
   overflow-will-restore: "<gray>升级末影箱后会自动回到普通仓库中。"

@@ -8,7 +8,9 @@ import org.bukkit.entity.Player;
 
 public class EnderChestUtils {
 
-    private static final EnderChest plugin = EnderChest.getInstance();
+    private static EnderChest plugin() {
+        return EnderChest.getInstance();
+    }
 
     /**
      * Get the ender chest size for an OfflinePlayer.
@@ -30,14 +32,15 @@ public class EnderChestUtils {
 
         // For offline players, we cannot check permissions
         // Return the default size from config, or max size (54) as fallback
-        if (plugin.config().getBoolean("default-player.enabled")) {
-            int defaultSize = plugin.config().getInt("default-player.size", 27);
+        if (plugin().config().getBoolean("default-player.enabled")) {
+            int defaultSize = plugin().config().getInt("default-player.size", 27);
             if (defaultSize > 0 && defaultSize % 9 == 0 && defaultSize <= 54) {
                 return defaultSize;
             }
         }
 
-        // Return vanilla ender chest size (27 slots = 3 rows) as fallback for offline players
+        // Return vanilla ender chest size (27 slots = 3 rows) as fallback for offline
+        // players
         return 27;
     }
 
@@ -50,24 +53,17 @@ public class EnderChestUtils {
             return 54;
         }
 
-        // Check specific level permissions in descending order (only valid levels)
-        int[] validLevels = {54, 45, 36, 27, 18, 9}; // Common enderchest sizes (6, 5, 4, 3, 2, 1 rows)
-        for (int level : validLevels) {
-            if (player.hasPermission("CustomEnderChest.level." + (level / 9 - 1))) {
-                return level;
-            }
-        }
-
-        // Check for numbered permissions (0-5)
+        // Check specific level permissions in descending order (level 5 = 54 slots,
+        // level 0 = 9 slots)
         for (int i = 5; i >= 0; i--) {
             if (player.hasPermission("CustomEnderChest.level." + i)) {
-                return (i + 1) * 9; // Convert level index to slot count
+                return (i + 1) * 9;
             }
         }
 
         // Check for default player size from config
-        if (plugin.config().getBoolean("default-player.enabled")) {
-            int defaultSize = plugin.config().getInt("default-player.size", 0);
+        if (plugin().config().getBoolean("default-player.enabled")) {
+            int defaultSize = plugin().config().getInt("default-player.size", 27);
             if (defaultSize > 0 && defaultSize % 9 == 0 && defaultSize <= 54) {
                 return defaultSize;
             }
@@ -82,18 +78,20 @@ public class EnderChestUtils {
         }
 
         int size = getSize(player);
+
         // Size 9 = 1 row, Size 18 = 2 rows -> index 1
         int levelIndex = (size > 0) ? (size / 9) - 1 : 0;
 
-        String levelNameRaw = plugin.getLocaleManager().getRawString("levels." + levelIndex, "Level " + (levelIndex + 1));
+        String levelNameRaw = plugin().getLocaleManager().getRawString("levels." + levelIndex,
+                "Level " + (levelIndex + 1));
         Component levelComponent = Text.parse(levelNameRaw);
 
-        String titleFormat = plugin.getLocaleManager().getRawString("titles.enderchest", "<level> - <light_purple><player>'s Chest");
+        String titleFormat = plugin().getLocaleManager().getRawString("titles.enderchest",
+                "<level> - <light_purple><player>'s Chest");
 
         return Text.parse(titleFormat,
                 Placeholder.component("level", levelComponent),
-                Placeholder.unparsed("player", player.getName())
-        );
+                Placeholder.unparsed("player", player.getName()));
     }
 
     public static Component getAdminTitle(String targetName) {
@@ -101,7 +99,8 @@ public class EnderChestUtils {
             targetName = "Unknown Player";
         }
 
-        String titleFormat = plugin.getLocaleManager().getRawString("titles.admin_view", "<dark_red>Admin View: <player>");
+        String titleFormat = plugin().getLocaleManager().getRawString("titles.admin_view",
+                "<dark_red>Admin View: <player>");
         return Text.parse(titleFormat,
                 Placeholder.unparsed("player", targetName));
     }

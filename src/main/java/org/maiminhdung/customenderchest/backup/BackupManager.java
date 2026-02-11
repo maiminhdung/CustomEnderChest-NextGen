@@ -16,21 +16,9 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/**
- * Manages automatic backups of player data
- * Features:
- * - Automatic scheduled backups
- * - Backup retention policy (auto-cleanup old backups)
- * - Compression support
- * - Backup before server shutdown
- */
 public class BackupManager {
 
     private final EnderChest plugin;
-    /**
-     * -- GETTER --
-     *  Get backup folder
-     */
     @Getter
     private final File backupFolder;
     private Scheduler.Task autoBackupTask;
@@ -61,10 +49,9 @@ public class BackupManager {
 
         // Run first backup after 5 minutes, then every interval
         this.autoBackupTask = Scheduler.runTaskTimerAsync(
-            this::performBackup,
-            5 * 60L * 20L, // Initial delay: 5 minutes
-            intervalTicks
-        );
+                this::performBackup,
+                5 * 60L * 20L, // Initial delay: 5 minutes
+                intervalTicks);
 
         plugin.getLogger().info("Automatic backup system started. Interval: " + intervalMinutes + " minutes");
     }
@@ -118,7 +105,8 @@ public class BackupManager {
                 long fileSizeKB = backupFile.exists() ? backupFile.length() / 1024 : 0;
 
                 plugin.getLogger().info("[Backup] Backup completed successfully in " + duration + "ms");
-                plugin.getLogger().info("[Backup] Backup saved to: " + backupFile.getName() + " (Size: " + fileSizeKB + " KB)");
+                plugin.getLogger()
+                        .info("[Backup] Backup saved to: " + backupFile.getName() + " (Size: " + fileSizeKB + " KB)");
                 plugin.getDebugLogger().log("[Backup] Backup file size: " + fileSizeKB + " KB");
 
                 // Clean up old backups
@@ -128,7 +116,8 @@ public class BackupManager {
                 return true;
             } catch (Exception e) {
                 plugin.getLogger().severe("[Backup] Failed to create backup: " + e.getMessage());
-                plugin.getDebugLogger().log("[Backup] Exception details: " + e.getClass().getName() + " - " + e.getMessage());
+                plugin.getDebugLogger()
+                        .log("[Backup] Exception details: " + e.getClass().getName() + " - " + e.getMessage());
                 if (plugin.config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
@@ -194,16 +183,15 @@ public class BackupManager {
         try {
             // Use H2's BACKUP TO command to create a consistent backup
             // This command locks the database briefly and creates a consistent snapshot
-            java.sql.Connection conn = plugin.getStorageManager().getConnection();
-            java.sql.Statement stmt = conn.createStatement();
+            try (java.sql.Connection conn = plugin.getStorageManager().getConnection();
+                    java.sql.Statement stmt = conn.createStatement()) {
 
-            String backupPath = tempBackupFile.getAbsolutePath().replace("\\", "/");
-            String sql = "BACKUP TO '" + backupPath + "'";
+                String backupPath = tempBackupFile.getAbsolutePath().replace("\\", "/");
+                String sql = "BACKUP TO '" + backupPath + "'";
 
-            plugin.getDebugLogger().log("[Backup] Executing H2 BACKUP command: " + sql);
-            stmt.execute(sql);
-            stmt.close();
-            conn.close();
+                plugin.getDebugLogger().log("[Backup] Executing H2 BACKUP command: " + sql);
+                stmt.execute(sql);
+            }
 
             plugin.getDebugLogger().log("[Backup] H2 BACKUP command completed successfully");
 
@@ -238,7 +226,8 @@ public class BackupManager {
             } catch (Exception e2) {
                 plugin.getLogger().severe("[Backup] Both H2 backup methods failed!");
                 plugin.getLogger().severe("[Backup] This usually means the database is locked by another process.");
-                plugin.getLogger().severe("[Backup] Consider increasing backup interval or using MySQL for better backup support.");
+                plugin.getLogger().severe(
+                        "[Backup] Consider increasing backup interval or using MySQL for better backup support.");
                 throw new IOException("Failed to backup H2 database: " + e2.getMessage(), e2);
             }
         } finally {
@@ -259,9 +248,8 @@ public class BackupManager {
         File dataFolder = new File(plugin.getDataFolder(), "data");
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(backupFile.toPath()))) {
-            File[] files = dataFolder.listFiles((dir, name) ->
-                name.startsWith("enderchests") && (name.endsWith(".mv.db") || name.endsWith(".trace.db"))
-            );
+            File[] files = dataFolder.listFiles((dir, name) -> name.startsWith("enderchests")
+                    && (name.endsWith(".mv.db") || name.endsWith(".trace.db")));
 
             if (files == null || files.length == 0) {
                 plugin.getLogger().warning("[Backup] No H2 database files found to backup");
@@ -330,11 +318,11 @@ public class BackupManager {
             int maxBackups = plugin.config().getInt("backup.max-backups", 10);
             int retentionDays = plugin.config().getInt("backup.retention-days", 7);
 
-            plugin.getDebugLogger().log("[Backup] Cleanup policy - Max backups: " + maxBackups + ", Retention days: " + retentionDays);
+            plugin.getDebugLogger()
+                    .log("[Backup] Cleanup policy - Max backups: " + maxBackups + ", Retention days: " + retentionDays);
 
-            File[] backupFiles = backupFolder.listFiles((dir, name) ->
-                name.startsWith("backup_") && name.endsWith(".zip")
-            );
+            File[] backupFiles = backupFolder
+                    .listFiles((dir, name) -> name.startsWith("backup_") && name.endsWith(".zip"));
 
             if (backupFiles == null || backupFiles.length == 0) {
                 plugin.getDebugLogger().log("[Backup] No backup files found for cleanup");
@@ -344,7 +332,8 @@ public class BackupManager {
             plugin.getDebugLogger().log("[Backup] Found " + backupFiles.length + " backup files");
 
             if (backupFiles.length <= maxBackups) {
-                plugin.getDebugLogger().log("[Backup] Backup count (" + backupFiles.length + ") is within limit (" + maxBackups + "), no cleanup needed");
+                plugin.getDebugLogger().log("[Backup] Backup count (" + backupFiles.length + ") is within limit ("
+                        + maxBackups + "), no cleanup needed");
                 return; // No cleanup needed
             }
 
@@ -360,14 +349,16 @@ public class BackupManager {
             for (int i = 0; i < backupFiles.length - maxBackups; i++) {
                 File file = backupFiles[i];
                 if (file.lastModified() < cutoffTime.toEpochMilli()) {
-                    plugin.getDebugLogger().log("[Backup] Deleting old backup: " + file.getName() + " (Age: " + ((System.currentTimeMillis() - file.lastModified()) / (1000 * 60 * 60 * 24)) + " days)");
+                    plugin.getDebugLogger().log("[Backup] Deleting old backup: " + file.getName() + " (Age: "
+                            + ((System.currentTimeMillis() - file.lastModified()) / (1000 * 60 * 60 * 24)) + " days)");
                     if (file.delete()) {
                         deleted++;
                     } else {
                         plugin.getLogger().warning("[Backup] Failed to delete backup: " + file.getName());
                     }
                 } else {
-                    plugin.getDebugLogger().log("[Backup] Keeping backup: " + file.getName() + " (within retention period)");
+                    plugin.getDebugLogger()
+                            .log("[Backup] Keeping backup: " + file.getName() + " (within retention period)");
                 }
             }
 
@@ -387,7 +378,7 @@ public class BackupManager {
      */
     public void createShutdownBackup() {
         // Check if shutdown backup is enabled (default to true if not set)
-        if (plugin.config().getString("backup.backup-on-shutdown", "true").equalsIgnoreCase("false")) {
+        if (!plugin.config().getBoolean("backup.backup-on-shutdown", true)) {
             return;
         }
 
@@ -407,9 +398,7 @@ public class BackupManager {
      * List all available backups
      */
     public List<File> listBackups() {
-        File[] files = backupFolder.listFiles((dir, name) ->
-            name.startsWith("backup_") && name.endsWith(".zip")
-        );
+        File[] files = backupFolder.listFiles((dir, name) -> name.startsWith("backup_") && name.endsWith(".zip"));
 
         if (files == null || files.length == 0) {
             return new ArrayList<>();
@@ -421,4 +410,3 @@ public class BackupManager {
     }
 
 }
-
