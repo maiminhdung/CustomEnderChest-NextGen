@@ -1,0 +1,52 @@
+# File Ngôn ngữ Tiếng Việt cho CustomEnderChest
+
+# Prefix dùng cho tất cả messages
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
+
+messages:
+  no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
+  no-permission-block-open: "<red>Bạn không có quyền để mở rương Ender.</red>"
+  players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
+  reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
+  data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
+  data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
+  save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
+  invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
+
+  # Migration messages
+  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5+)."
+  migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
+  migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
+  data-migrated: "<green>Dữ liệu rương ender của bạn đã được chuyển sang tài khoản mới."
+
+  # Overflow messages
+  overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."
+  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender."
+  overflow-items-restored: "<green>✓ Đã khôi phục <count> vật phẩm từ kho dự phòng!"
+
+command:
+  usage: "<red>Sử dụng: <gray>/<label> <usage>"
+  player-not-found: "<red>Không tìm thấy người chơi '<player>' hoặc họ chưa có dữ liệu."
+  delete-usage: "<red>Sử dụng: <gray>/<label> delete <tên_người_chơi>"
+  delete-success: "<green>Đã xóa thành công dữ liệu Rương Ender của <white><player></white>."
+  loading-chest: "<yellow>Đang tải Rương Ender của <white><player></white>..."
+
+titles:
+  enderchest: "<level> - <light_purple>Rương của <player>"
+  admin_view: "<dark_red>Admin Xem: <white><player>"
+
+# Tên cấp độ được dùng trong biến <level>
+levels:
+  '0': "&fCấp 1" # 1 hàng (9 ô)
+  '1': "&aCấp 2" # 2 hàng (18 ô)
+  '2': "&bCấp 3" # 3 hàng (27 ô)
+  '3': "&eCấp 4" # 4 hàng (36 ô)
+  '4': "&6Cấp 5" # 5 hàng (45 ô)
+  '5': "&d&lCấp 6" # 6 hàng (54 ô)
+
+import:
+  started: "<green>Bắt đầu chuyển dữ liệu vanilla sang plugin cho tất cả người chơi trực tuyến..."
+  complete: "<green>Chuyển hoàn tất! Đã chuyển cho <white><imported></white> người chơi, bỏ qua <white><skipped></white>."
+  auto-import-started: "<yellow>Đang tự động chuyển vật phẩm từ rương ender vanilla của bạn..."
+  auto-import-complete: "<green>Tự động chuyển hoàn tất! Đã chuyển <white><count></white> vật phẩm từ rương ender vanilla."
+  auto-import-failed: "<red>Không thể tự động chuyển dữ liệu rương ender vanilla. Vui lòng liên hệ admin."
