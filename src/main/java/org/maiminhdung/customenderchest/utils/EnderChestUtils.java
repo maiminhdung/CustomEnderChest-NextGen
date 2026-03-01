@@ -49,14 +49,17 @@ public class EnderChestUtils {
             return 0;
         }
 
-        if (player.hasPermission("CustomEnderChest.level.*")) {
+        // Check wildcard permission - only if explicitly set, not inherited from OP
+        if (player.isPermissionSet("CustomEnderChest.level.*") && player.hasPermission("CustomEnderChest.level.*")) {
             return 54;
         }
 
         // Check specific level permissions in descending order (level 5 = 54 slots,
         // level 0 = 9 slots)
+        // Use isPermissionSet to avoid OP players getting max size by default
         for (int i = 5; i >= 0; i--) {
-            if (player.hasPermission("CustomEnderChest.level." + i)) {
+            String perm = "CustomEnderChest.level." + i;
+            if (player.isPermissionSet(perm) && player.hasPermission(perm)) {
                 return (i + 1) * 9;
             }
         }
