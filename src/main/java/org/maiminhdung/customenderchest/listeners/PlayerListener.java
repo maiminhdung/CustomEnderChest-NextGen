@@ -62,8 +62,13 @@ public class PlayerListener implements Listener {
             return;
         if (event.getClickedBlock().getType() != Material.ENDER_CHEST)
             return;
-        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-endechest-block"))
+        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-enderchest-block"))
             return;
+
+        // Do not open if player is sneaking and holding an item (allows block placement)
+        if (player.isSneaking() && (!player.getInventory().getItemInMainHand().getType().isAir() || !player.getInventory().getItemInOffHand().getType().isAir())) {
+            return;
+        }
 
         // Cancel the event immediately to prevent vanilla enderchest GUI from opening
         event.setCancelled(true);

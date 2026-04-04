@@ -4,7 +4,6 @@ import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.data.EnderChestManager;
-import org.maiminhdung.customenderchest.data.LegacyImporter;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
@@ -33,14 +32,12 @@ import java.util.stream.Collectors;
 public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
     private final EnderChest plugin;
-    private final LegacyImporter legacyImporter;
     private final StorageInterface storage;
     private final EnderChestManager manager;
     private final ConvertAllCommand convertAllCommand;
 
     public EnderChestCommand(EnderChest plugin) {
         this.plugin = plugin;
-        this.legacyImporter = new LegacyImporter(plugin);
         this.storage = plugin.getStorageManager().getStorage();
         this.manager = plugin.getEnderChestManager();
         this.convertAllCommand = new ConvertAllCommand(plugin);
@@ -244,7 +241,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
         String importType = args[1].toLowerCase();
         if (importType.equals("vanilla")) {
-            legacyImporter.runVanillaImportAll(sender);
+            plugin.getLegacyImporter().runVanillaImportAll(sender);
         } else {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.import-invalid-type"));
         }
@@ -279,11 +276,11 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     DataLockManager dataLockManager = plugin.getDataLockManager();
                     LocaleManager localeManager = plugin.getLocaleManager();
 
-                    if (dataLockManager.isLocked(targetUUID)) {
+                    // Use atomic tryLock to avoid race condition
+                    if (!dataLockManager.tryLock(targetUUID)) {
                         sender.sendMessage(localeManager.getPrefixedComponent("messages.data-busy"));
                         return;
                     }
-                    dataLockManager.lock(targetUUID);
 
 
                     int size;

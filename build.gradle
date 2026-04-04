@@ -42,6 +42,7 @@ tasks {
         relocate("com.zaxxer.hikari", "org.maiminhdung.customenderchest.lib.hikari")
         relocate("org.h2", "org.maiminhdung.customenderchest.lib.h2")
         relocate("com.NighterDevelopment.PluginUpdateCore", "org.maiminhdung.customenderchest.lib.pluginupdatecore")
+        relocate("org.bstats", "org.maiminhdung.customenderchest.lib.bstats")
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)

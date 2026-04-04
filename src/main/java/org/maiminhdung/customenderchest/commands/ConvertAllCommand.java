@@ -141,11 +141,11 @@ public class ConvertAllCommand implements CommandExecutor {
                     } else {
                         // Update database with converted data
                         String updateSql = "UPDATE " + tableName + " SET chest_data = ? WHERE player_uuid = ?";
-                        PreparedStatement updatePs = conn.prepareStatement(updateSql);
-                        updatePs.setString(1, newData);
-                        updatePs.setString(2, playerData.uuid.toString());
-                        updatePs.executeUpdate();
-                        updatePs.close();
+                        try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                            updatePs.setString(1, newData);
+                            updatePs.setString(2, playerData.uuid.toString());
+                            updatePs.executeUpdate();
+                        }
 
                         successCount.incrementAndGet();
                         plugin.getLogger().info("Converted data for: " + playerData.playerName + " (" + items.length + " slots)");

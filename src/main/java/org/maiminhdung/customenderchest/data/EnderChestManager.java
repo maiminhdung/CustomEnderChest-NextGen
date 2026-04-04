@@ -554,12 +554,20 @@ public class EnderChestManager {
         if (cacheSnapshot.isEmpty())
             return CompletableFuture.completedFuture(null);
         plugin.getLogger().info("Force-saving data for " + cacheSnapshot.size() + " players...");
+        
+        // During shutdown, we clone inventory contents immediately
+        // This is safer because we're on the main/global thread during shutdown
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
                     UUID uuid = entry.getKey();
                     Player p = Bukkit.getPlayer(uuid);
                     String name = (p != null) ? p.getName() : Bukkit.getOfflinePlayer(uuid).getName();
-                    return saveEnderChest(uuid, name, entry.getValue());
+                    Inventory inv = entry.getValue();
+                    // Clone contents immediately to avoid thread safety issues
+                    ItemStack[] contents = cleanInventoryForSave(inv.getContents().clone());
+                    int size = inv.getSize();
+                    return plugin.getStorageManager().getStorage()
+                            .saveEnderChest(uuid, name, size, contents);
                 })
                 .filter(Objects::nonNull).toArray(CompletableFuture[]::new);
         return CompletableFuture.allOf(futures);
@@ -567,6 +575,8 @@ public class EnderChestManager {
 
     // Auto-save all cached data periodically to prevent data loss.
     private void autoSaveAll() {
+        // On Folia, we need to get inventory contents from the correct region thread
+        // So we run this on global thread first to collect data safely
         Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
         if (cacheSnapshot.isEmpty()) {
             return;
@@ -592,13 +602,44 @@ public class EnderChestManager {
                 continue;
             }
 
-            String name = p.getName();
-            CompletableFuture<Void> future = saveEnderChest(uuid, name, entry.getValue())
-                    .exceptionally(ex -> {
-                        plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
-                        return null;
-                    });
-            futures.add(future);
+            final String name = p.getName();
+            final Inventory inv = entry.getValue();
+            final int size = inv.getSize();
+            
+            // On Folia, we need to clone the inventory contents on the correct entity thread
+            // to avoid cross-region thread access violations
+            if (Scheduler.isFolia()) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                final Player finalPlayer = p;
+                Scheduler.runEntityTask(p, () -> {
+                    // Now we're on the correct region thread for this player
+                    if (!finalPlayer.isOnline()) {
+                        future.complete(null);
+                        return;
+                    }
+                    ItemStack[] contents = cleanInventoryForSave(inv.getContents().clone());
+                    // Now save asynchronously
+                    plugin.getStorageManager().getStorage()
+                            .saveEnderChest(uuid, name, size, contents)
+                            .whenComplete((result, ex) -> {
+                                if (ex != null) {
+                                    plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                                } else {
+                                    plugin.getDebugLogger().log("Auto-saved data for " + name);
+                                }
+                                future.complete(null);
+                            });
+                });
+                futures.add(future);
+            } else {
+                // On non-Folia servers, we can safely access inventory from async thread
+                CompletableFuture<Void> future = saveEnderChest(uuid, name, inv)
+                        .exceptionally(ex -> {
+                            plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                            return null;
+                        });
+                futures.add(future);
+            }
         }
 
         // Wait for all saves to complete to ensure data consistency
