@@ -83,6 +83,10 @@ public class PlayerListener implements Listener {
         if (!player.isOnline()) {
             return;
         }
+        if (isMigrating(player)) {
+            return;
+        }
+
         // Let the EnderChestManager handle the permission check logic now
         plugin.getEnderChestManager().openEnderChest(player);
     }
@@ -105,6 +109,17 @@ public class PlayerListener implements Listener {
 
         // Check disable-enderchest-click config setting
         return plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click", true);
+    }
+
+    private boolean isMigrating(Player player) {
+        if (plugin.getCommand("customenderchest") != null
+                && plugin.getCommand("customenderchest").getExecutor() instanceof org.maiminhdung.customenderchest.commands.EnderChestCommand cmd) {
+            if (cmd.getMigrationManager().isMigrating()) {
+                player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-in-progress"));
+                return true;
+            }
+        }
+        return false;
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync

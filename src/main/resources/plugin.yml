@@ -9,7 +9,7 @@ folia-supported: true
 commands:
   customenderchest:
     description: Main command for CustomEnderChest.
-    usage: "/<command> [open|reload|import|delete|convertall]"
+    usage: "/<command> [open|reload|import|delete|convertall|stats]"
     aliases: [ cec, ec, customec ]
 permissions:
   CustomEnderChest.level.0:

@@ -57,6 +57,39 @@ public class StorageManager {
         this.storageImplementation.init();
     }
 
+    public StorageManager(EnderChest plugin, String forceStorageType) {
+        this.plugin = plugin;
+        switch (forceStorageType.toLowerCase()) {
+            case "mysql":
+                plugin.getLogger().info("Migration: Initializing MySQL storage.");
+                if (connectMySQL()) {
+                    this.storageImplementation = new MySQLStorage(this);
+                } else {
+                    plugin.getLogger().severe("Migration: MySQL connection failed!");
+                    this.storageImplementation = null;
+                }
+                break;
+            case "h2":
+                plugin.getLogger().info("Migration: Initializing H2 storage.");
+                if (connectH2()) {
+                    this.storageImplementation = new H2Storage(this);
+                } else {
+                    plugin.getLogger().severe("Migration: H2 connection failed!");
+                    this.storageImplementation = null;
+                }
+                break;
+            case "yml":
+            default:
+                plugin.getLogger().info("Migration: Initializing YML storage.");
+                this.dataSource = null;
+                this.storageImplementation = new YmlStorage(plugin);
+                break;
+        }
+        if (this.storageImplementation != null) {
+            this.storageImplementation.init();
+        }
+    }
+
     private boolean connectMySQL() {
         try {
             HikariConfig config = new HikariConfig();

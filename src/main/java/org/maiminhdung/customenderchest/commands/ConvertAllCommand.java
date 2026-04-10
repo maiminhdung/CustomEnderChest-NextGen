@@ -39,7 +39,7 @@ public class ConvertAllCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         // Check admin permission
-        if (!sender.hasPermission("CustomEnderChest.admin")) {
+        if (sender instanceof org.bukkit.entity.Player && !sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage("§cYou don't have permission to use this command!");
             return true;
         }

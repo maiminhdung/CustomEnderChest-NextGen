@@ -7,6 +7,7 @@ import org.maiminhdung.customenderchest.data.EnderChestManager;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
+import org.maiminhdung.customenderchest.storage.migrate.MigrationManager;
 import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -35,12 +36,18 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     private final StorageInterface storage;
     private final EnderChestManager manager;
     private final ConvertAllCommand convertAllCommand;
+    private final MigrationManager migrationManager;
 
     public EnderChestCommand(EnderChest plugin) {
         this.plugin = plugin;
         this.storage = plugin.getStorageManager().getStorage();
         this.manager = plugin.getEnderChestManager();
         this.convertAllCommand = new ConvertAllCommand(plugin);
+        this.migrationManager = new MigrationManager(plugin);
+    }
+
+    public MigrationManager getMigrationManager() {
+        return migrationManager;
     }
 
     @Override
@@ -53,6 +60,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                  args[0].equalsIgnoreCase("import") ||
                  args[0].equalsIgnoreCase("delete") ||
                  args[0].equalsIgnoreCase("convertall") ||
+                 args[0].equalsIgnoreCase("migrate") ||
                  args[0].equalsIgnoreCase("stats"));
 
             if (!isAdminCommand && !hasCommandPermission(p)) {
@@ -84,10 +92,24 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             case "convertall":
                 convertAllCommand.onCommand(sender, command, label, args);
                 break;
+            case "stats":
+                handleStats(sender, args);
+                break;
+            case "migrate":
+                handleMigrate(sender, args);
+                break;
             default:
                 return handleDefaultCommand(sender);
         }
         return true;
+    }
+
+    /**
+     * Console/terminal senders are allowed to run admin commands.
+     * For players, normal permission checks still apply.
+     */
+    private boolean hasSenderPermission(CommandSender sender, String permission) {
+        return !(sender instanceof Player) || sender.hasPermission(permission);
     }
 
     /**
@@ -113,6 +135,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
      */
     private boolean handleDefaultCommand(CommandSender sender) {
         if (sender instanceof Player p) {
+            if (migrationManager.isMigrating()) {
+                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-in-progress"));
+                return true;
+            }
             plugin.getEnderChestManager().openEnderChest(p);
         } else {
             sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
@@ -127,6 +153,11 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     private void handleOpen(CommandSender sender, String[] args) {
         if (!(sender instanceof Player p)) {
             sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
+            return;
+        }
+
+        if (migrationManager.isMigrating()) {
+            p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-in-progress"));
             return;
         }
 
@@ -214,7 +245,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
      * Reloads plugin configuration and locale files
      */
     private void handleReload(CommandSender sender) {
-        if (!sender.hasPermission("CustomEnderChest.admin")) {
+        if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             return;
         }
@@ -229,7 +260,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
      * Imports vanilla ender chest data for all online players (admin only)
      */
     private void handleImport(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("CustomEnderChest.admin")) {
+        if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             return;
         }
@@ -252,7 +283,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
      * Deletes a player's enderchest data completely
      */
     private void handleDelete(CommandSender sender, String[] args, String label) {
-        if (!sender.hasPermission("CustomEnderChest.command.delete")) {
+        if (!hasSenderPermission(sender, "CustomEnderChest.command.delete")) {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             return;
         }
@@ -291,6 +322,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     }
 
                     if (size == 0) {
+                        dataLockManager.unlock(targetUUID);
                         sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
                                 Placeholder.unparsed("player", finalName)));
                         return;
@@ -299,7 +331,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     ItemStack[] emptyItems = new ItemStack[size];
 
                     manager.saveEnderChest(targetUUID, finalName, size, emptyItems)
-                            .thenRun(() -> {
+                            .whenComplete((result, ex) -> {
                                 if (target.isOnline()) {
                                     Scheduler.runEntityTask(target.getPlayer(), () -> {
                                         manager.reloadCacheFor(target.getPlayer());
@@ -308,11 +340,127 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                                 }
 
                                 dataLockManager.unlock(targetUUID);
-                                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.delete-success",
+
+                                if (ex != null) {
+                                    plugin.getLogger().warning("Failed to delete enderchest data for " + finalName + ": "
+                                            + ex.getMessage());
+                                    sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.save-error"));
+                                    return;
+                                }
+
+                                sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent(
+                                        "command.delete-success",
                                         Placeholder.unparsed("player", finalName)));
                             });
 
                 });
+    }
+
+    /**
+     * Handle /cec stats [validate|help]
+     * - /cec stats: show storage summary
+     * - /cec stats validate: scan stored player entries and report corrupted records
+     */
+    private void handleStats(CommandSender sender, String[] args) {
+        if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            return;
+        }
+
+        if (args.length >= 2 && args[1].equalsIgnoreCase("help")) {
+            sender.sendMessage("§e[CustomEnderChest] Stats commands:");
+            sender.sendMessage("§7/cec stats §f- Show storage statistics summary");
+            sender.sendMessage("§7/cec stats validate §f- Validate stored player data");
+            return;
+        }
+
+        if (args.length >= 2 && args[1].equalsIgnoreCase("validate")) {
+            sender.sendMessage("§e[CustomEnderChest] Validating stored data...");
+
+            storage.getPlayersWithItems()
+                    .thenAccept(players -> Scheduler.runTask(() -> {
+                        long corruptedCount = players.stream().filter(info -> info.isCorrupted).count();
+                        long overflowCount = players.stream().filter(info -> info.hasOverflow).count();
+                        long playersWithItems = players.stream().filter(info -> info.itemCount > 0).count();
+
+                        sender.sendMessage("§e[CustomEnderChest] ================== Validation ==================");
+                        sender.sendMessage("§e[CustomEnderChest] Total records: §f" + players.size());
+                        sender.sendMessage("§e[CustomEnderChest] Records with items: §f" + playersWithItems);
+                        sender.sendMessage("§e[CustomEnderChest] Records with overflow: §f" + overflowCount);
+                        sender.sendMessage("§e[CustomEnderChest] Corrupted records: §f" + corruptedCount);
+
+                        if (corruptedCount > 0) {
+                            sender.sendMessage("§c[CustomEnderChest] Corrupted entries (max 10 shown):");
+                            int shown = 0;
+                            for (StorageInterface.PlayerDataInfo info : players) {
+                                if (!info.isCorrupted) {
+                                    continue;
+                                }
+                                sender.sendMessage("§c - " + info.playerName + " (" + info.playerUUID + "): "
+                                        + (info.errorMessage == null ? "Unknown error" : info.errorMessage));
+                                shown++;
+                                if (shown >= 10) {
+                                    break;
+                                }
+                            }
+                            if (corruptedCount > 10) {
+                                sender.sendMessage("§c... and " + (corruptedCount - 10) + " more corrupted entries.");
+                            }
+                        }
+
+                        sender.sendMessage("§e[CustomEnderChest] =================================================");
+                    }))
+                    .exceptionally(ex -> {
+                        plugin.getLogger().warning("Failed to validate storage data: " + ex.getMessage());
+                        Scheduler.runTask(
+                                () -> sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.save-error")));
+                        return null;
+                    });
+            return;
+        }
+
+        sender.sendMessage("§e[CustomEnderChest] Collecting storage statistics...");
+
+        storage.getStorageStats()
+                .thenAccept(stats -> Scheduler.runTask(() -> {
+                    String storageType = plugin.config().getString("storage.type", "yml").toUpperCase();
+                    sender.sendMessage("§e[CustomEnderChest] ==================== Stats =====================");
+                    sender.sendMessage("§e[CustomEnderChest] Storage type: §f" + storageType);
+                    sender.sendMessage("§e[CustomEnderChest] Total player records: §f" + stats.totalPlayers);
+                    sender.sendMessage("§e[CustomEnderChest] Players with items: §f" + stats.playersWithItems);
+                    sender.sendMessage("§e[CustomEnderChest] Total stored items: §f" + stats.totalItems);
+                    sender.sendMessage("§e[CustomEnderChest] Overflow players: §f" + stats.totalOverflowPlayers);
+                    sender.sendMessage("§e[CustomEnderChest] Overflow items: §f" + stats.totalOverflowItems);
+                    sender.sendMessage("§e[CustomEnderChest] Data size (bytes): §f" + stats.totalDataSize);
+                    sender.sendMessage("§e[CustomEnderChest] =================================================");
+                }))
+                .exceptionally(ex -> {
+                    plugin.getLogger().warning("Failed to fetch storage stats: " + ex.getMessage());
+                    Scheduler.runTask(
+                            () -> sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.save-error")));
+                    return null;
+                });
+    }
+
+    /**
+     * Handle /cec migrate command
+     */
+    private void handleMigrate(CommandSender sender, String[] args) {
+        if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            return;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(plugin.getLocaleManager().getComponent("command.migrate-usage"));
+            sender.sendMessage(plugin.getLocaleManager().getComponent("command.migrate-example"));
+            return;
+        }
+
+        String sourceType = args[1].toLowerCase();
+        String targetType = args[2].toLowerCase();
+
+        migrationManager.startMigration(sender, sourceType, targetType);
     }
 
     @Override
@@ -325,6 +473,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 completions.add("import");
                 completions.add("delete");
                 completions.add("convertall");
+                completions.add("migrate");
                 completions.add("stats");
                 completions.add("open");
             }
@@ -338,6 +487,11 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                     return null;
                 }
             }
+            if (args[0].equalsIgnoreCase("migrate") && sender.hasPermission("CustomEnderChest.admin")) {
+                return List.of("yml", "h2", "mysql").stream()
+                        .filter(s -> s.startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
             // Stats subcommand completions
             if (args[0].equalsIgnoreCase("stats") && sender.hasPermission("CustomEnderChest.admin")) {
                 List<String> statsCompletions = new ArrayList<>();
@@ -345,6 +499,13 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 statsCompletions.add("help");
                 return statsCompletions.stream()
                         .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
+        }
+        if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("migrate") && sender.hasPermission("CustomEnderChest.admin")) {
+                return List.of("yml", "h2", "mysql").stream()
+                        .filter(s -> s.startsWith(args[2].toLowerCase()))
                         .collect(Collectors.toList());
             }
         }

@@ -176,7 +176,10 @@ public class MySQLStorage implements StorageInterface {
 
                 ps.executeUpdate();
             } catch (Exception e) {
-                e.printStackTrace();
+                EnderChest.getInstance().getLogger().severe(
+                        "[MySQLStorage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
+                                + e.getMessage());
+                throw new RuntimeException("Failed to save enderchest data", e);
             }
         });
     }
@@ -256,7 +259,7 @@ public class MySQLStorage implements StorageInterface {
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
-                e.printStackTrace();
+                throw new RuntimeException("Failed to save overflow items", e);
             }
         });
     }

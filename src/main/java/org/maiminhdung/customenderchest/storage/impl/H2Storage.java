@@ -184,6 +184,7 @@ public class H2Storage implements StorageInterface {
                 EnderChest.getInstance().getLogger().severe(
                         "[H2Storage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
                                 + e.getMessage());
+                throw new RuntimeException("Failed to save enderchest data", e);
             }
         });
     }
@@ -259,7 +260,7 @@ public class H2Storage implements StorageInterface {
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
-                e.printStackTrace();
+                throw new RuntimeException("Failed to save overflow items", e);
             }
         });
     }
