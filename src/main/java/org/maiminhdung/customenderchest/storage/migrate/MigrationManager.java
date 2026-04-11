@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.storage.migrate;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import org.bukkit.command.CommandSender;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
@@ -85,6 +87,7 @@ public class MigrationManager {
 
             } catch (Exception e) {
                 plugin.getLogger().severe("Migration exception: " + e.getMessage());
+                ERROR_TRACKER.trackError(e);
                 Scheduler.runTask(() -> sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent(
                         "command.migrate-error-unknown",
                         Placeholder.unparsed("error", e.getMessage() != null ? e.getMessage() : "Unknown"))));

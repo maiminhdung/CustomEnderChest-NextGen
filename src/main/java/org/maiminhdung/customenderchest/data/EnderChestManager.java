@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.data;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
@@ -29,6 +31,7 @@ public class EnderChestManager {
     private final EnderChest plugin;
     private final SoundHandler soundHandler;
     private final DataLockManager dataLockManager;
+    @Getter
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
     private final Scheduler.Task inventoryTrackerTask;
@@ -233,6 +236,11 @@ public class EnderChestManager {
                             long duration = (System.nanoTime() - startTime) / 1_000_000; // DEBUG: End timer
                             plugin.getDebugLogger().log(
                                     "Cache is ready for " + player.getName() + ". (Load time: " + duration + "ms)");
+                            
+                            // Metrics tracking
+                            if (plugin.getMetricsDataProvider() != null) {
+                                plugin.getMetricsDataProvider().recordLoad();
+                            }
                         } finally {
                             dataLockManager.unlock(player.getUniqueId());
                             plugin.getDebugLogger().log("Data lock released for " + player.getName());
@@ -350,9 +358,11 @@ public class EnderChestManager {
             plugin.getLogger().info("All player data has been saved successfully.");
         } catch (TimeoutException e) {
             plugin.getLogger().warning("Shutdown save timed out after 30 seconds. Some data may not have been saved.");
+            ERROR_TRACKER.trackError(e);
         } catch (Exception e) {
             plugin.getLogger().severe("Error during shutdown save: " + e.getMessage());
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
     }
 
@@ -645,7 +655,9 @@ public class EnderChestManager {
         // Wait for all saves to complete to ensure data consistency
         if (!futures.isEmpty()) {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenRun(() -> plugin.getDebugLogger().log("Auto-save completed for all players."));
+                    .thenRun(() -> {
+                        plugin.getDebugLogger().log("Auto-save completed for all players.");
+                    });
         }
     }
 
@@ -659,8 +671,15 @@ public class EnderChestManager {
         return plugin.getStorageManager().getStorage()
                 .saveEnderChest(uuid, playerName, inv.getSize(), cleanedContents)
                 .thenRun(() -> {
-                    long duration = (System.nanoTime() - startTime) / 1_000_000; // DEBUG: End timer
+                    long elapsedNanos = System.nanoTime() - startTime;
+                    long duration = elapsedNanos / 1_000_000; // DEBUG: End timer
                     plugin.getDebugLogger().log("Data for " + playerName + " saved in " + duration + "ms.");
+                    
+                    // Metrics tracking
+                    if (plugin.getMetricsDataProvider() != null) {
+                        plugin.getMetricsDataProvider().recordSave();
+                        plugin.getMetricsDataProvider().recordSaveTime(elapsedNanos);
+                    }
                 });
     }
 

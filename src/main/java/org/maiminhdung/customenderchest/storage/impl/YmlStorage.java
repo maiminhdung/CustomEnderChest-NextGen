@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.storage.impl;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.data.ItemSerializer;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -56,6 +58,7 @@ public class YmlStorage implements StorageInterface {
                 config.save(playerFile);
             } catch (Exception e) {
                 e.printStackTrace();
+                ERROR_TRACKER.trackError(e);
             }
         });
     }
@@ -131,6 +134,7 @@ public class YmlStorage implements StorageInterface {
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
                 e.printStackTrace();
+                ERROR_TRACKER.trackError(e);
             }
         });
     }
@@ -163,6 +167,7 @@ public class YmlStorage implements StorageInterface {
                 config.save(playerFile);
             } catch (Exception e) {
                 e.printStackTrace();
+                ERROR_TRACKER.trackError(e);
             }
         });
     }
@@ -243,6 +248,7 @@ public class YmlStorage implements StorageInterface {
                     }
                 } catch (Exception e) {
                     EnderChest.getInstance().getLogger().warning("[YmlStorage] Failed to read file " + file.getName() + ": " + e.getMessage());
+                    ERROR_TRACKER.trackError(e);
                 }
             }
 

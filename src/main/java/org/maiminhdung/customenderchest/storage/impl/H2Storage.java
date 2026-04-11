@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.storage.impl;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.data.ItemSerializer;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -51,6 +53,7 @@ public class H2Storage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize H2 table!");
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
 
         // Overflow storage table
@@ -66,6 +69,7 @@ public class H2Storage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize overflow table!");
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
     }
 
@@ -121,6 +125,7 @@ public class H2Storage implements StorageInterface {
                 if (EnderChest.getInstance().config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
+                ERROR_TRACKER.trackError(e);
             }
             return null;
         });
@@ -184,6 +189,7 @@ public class H2Storage implements StorageInterface {
                 EnderChest.getInstance().getLogger().severe(
                         "[H2Storage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
                                 + e.getMessage());
+                ERROR_TRACKER.trackError(e);
                 throw new RuntimeException("Failed to save enderchest data", e);
             }
         });
@@ -260,6 +266,7 @@ public class H2Storage implements StorageInterface {
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
+                ERROR_TRACKER.trackError(e);
                 throw new RuntimeException("Failed to save overflow items", e);
             }
         });

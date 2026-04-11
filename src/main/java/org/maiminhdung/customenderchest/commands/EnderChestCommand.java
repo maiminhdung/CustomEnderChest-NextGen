@@ -141,7 +141,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             }
             plugin.getEnderChestManager().openEnderChest(p);
         } else {
-            sender.sendMessage(plugin.getLocaleManager().getComponent("messages.players-only"));
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.players-only"));
         }
         return true;
     }
@@ -452,8 +452,8 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length < 3) {
-            sender.sendMessage(plugin.getLocaleManager().getComponent("command.migrate-usage"));
-            sender.sendMessage(plugin.getLocaleManager().getComponent("command.migrate-example"));
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-usage"));
+            sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-example"));
             return;
         }
 

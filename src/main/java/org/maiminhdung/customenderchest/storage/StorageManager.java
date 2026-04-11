@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.storage;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
@@ -115,6 +117,7 @@ public class StorageManager {
             return true;
         } catch (Exception e) {
             plugin.getLogger().severe("MySQL connection error: " + e.getMessage());
+            ERROR_TRACKER.trackError(e);
             return false;
         }
     }
@@ -146,6 +149,7 @@ public class StorageManager {
             return true;
         } catch (Exception e) {
             plugin.getLogger().severe("H2 connection error: " + e.getMessage());
+            ERROR_TRACKER.trackError(e);
             return false;
         }
     }
