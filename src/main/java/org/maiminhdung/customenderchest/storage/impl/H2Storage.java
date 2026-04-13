@@ -126,6 +126,7 @@ public class H2Storage implements StorageInterface {
                     e.printStackTrace();
                 }
                 ERROR_TRACKER.trackError(e);
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });
@@ -164,6 +165,7 @@ public class H2Storage implements StorageInterface {
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().warning(
                         "[H2Storage] Failed to load chest size for " + playerUUID + ": " + e.getMessage());
+                throw new java.util.concurrent.CompletionException(e);
             }
             return 0;
         });
@@ -293,6 +295,7 @@ public class H2Storage implements StorageInterface {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });

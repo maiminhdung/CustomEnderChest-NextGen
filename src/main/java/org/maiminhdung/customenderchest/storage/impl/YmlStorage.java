@@ -36,7 +36,13 @@ public class YmlStorage implements StorageInterface {
             if (!playerFile.exists()) {
                 return null;
             }
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            YamlConfiguration config = new YamlConfiguration();
+            try {
+                config.load(playerFile);
+            } catch (Exception e) {
+                ERROR_TRACKER.trackError(e);
+                throw new java.util.concurrent.CompletionException("Failed to load yml", e);
+            }
 
             // Take size from config
             @SuppressWarnings("unchecked")
@@ -75,7 +81,13 @@ public class YmlStorage implements StorageInterface {
         return CompletableFuture.supplyAsync(() -> {
             File playerFile = getPlayerFile(playerUUID);
             if (!playerFile.exists()) return 0;
-            return YamlConfiguration.loadConfiguration(playerFile).getInt("enderchest-size", 0);
+            YamlConfiguration config = new YamlConfiguration();
+            try {
+                config.load(playerFile);
+            } catch (Exception e) {
+                throw new java.util.concurrent.CompletionException(e);
+            }
+            return config.getInt("enderchest-size", 0);
         });
     }
 
@@ -145,7 +157,13 @@ public class YmlStorage implements StorageInterface {
             File playerFile = getPlayerFile(playerUUID);
             if (!playerFile.exists()) return null;
 
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
+            YamlConfiguration config = new YamlConfiguration();
+            try {
+                config.load(playerFile);
+            } catch (Exception e) {
+                throw new java.util.concurrent.CompletionException(e);
+            }
+            
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("overflow-items");
 

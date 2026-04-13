@@ -95,6 +95,7 @@ public class EnderChestManager {
         final String playerName = player.getName();
 
         plugin.getStorageManager().getStorage().loadEnderChest(currentUUID)
+                .orTimeout(15, TimeUnit.SECONDS)
                 .thenCompose(items -> {
                     // If no data found for current UUID, try to find data by player name
                     // This handles the case where player switches between online/offline mode
@@ -670,6 +671,7 @@ public class EnderChestManager {
 
         return plugin.getStorageManager().getStorage()
                 .saveEnderChest(uuid, playerName, inv.getSize(), cleanedContents)
+                .orTimeout(15, TimeUnit.SECONDS)
                 .thenRun(() -> {
                     long elapsedNanos = System.nanoTime() - startTime;
                     long duration = elapsedNanos / 1_000_000; // DEBUG: End timer
@@ -703,7 +705,8 @@ public class EnderChestManager {
     // Save ender chest data with specified size and items, used for offline
     // players.
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, int size, ItemStack[] items) {
-        return plugin.getStorageManager().getStorage().saveEnderChest(uuid, playerName, size, items);
+        return plugin.getStorageManager().getStorage().saveEnderChest(uuid, playerName, size, items)
+                .orTimeout(15, TimeUnit.SECONDS);
     }
 
     // Get the cached inventory for a player, or null if not loaded.

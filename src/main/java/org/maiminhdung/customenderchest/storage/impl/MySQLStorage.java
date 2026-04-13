@@ -112,6 +112,7 @@ public class MySQLStorage implements StorageInterface {
             } catch (Exception e) {
                 e.printStackTrace();
                 ERROR_TRACKER.trackError(e);
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });
@@ -149,6 +150,7 @@ public class MySQLStorage implements StorageInterface {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                throw new java.util.concurrent.CompletionException(e);
             }
             return 0;
         });
@@ -292,6 +294,7 @@ public class MySQLStorage implements StorageInterface {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });

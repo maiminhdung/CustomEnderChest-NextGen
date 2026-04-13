@@ -211,11 +211,10 @@ public class PlayerListener implements Listener {
 
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
-            if (dataLockManager.isLocked(targetUUID)) {
+            if (!dataLockManager.tryLock(targetUUID)) {
                 player.sendMessage(localeManager.getPrefixedComponent("messages.data-still-loading"));
                 return;
             }
-            dataLockManager.lock(targetUUID); // Lock data before processing
 
             try {
                 debug.log("Admin " + player.getName() + " finished editing " + targetUUID + "'s chest. Saving data...");
@@ -270,19 +269,20 @@ public class PlayerListener implements Listener {
             // loss
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
-            // Only save if not currently locked (prevent double-save)
-            if (!dataLockManager.isLocked(player.getUniqueId())) {
+            // Lock to prevent double-save race conditions
+            if (dataLockManager.tryLock(player.getUniqueId())) {
                 debug.log("Player " + player.getName() + " closed their ender chest. Saving data...");
 
                 // Save asynchronously without blocking - let CompletableFuture handle it
                 manager.saveEnderChest(player.getUniqueId(), player.getName(), closedInventory)
-                        .exceptionally(ex -> {
-                            plugin.getLogger().severe("Failed to save data for " + player.getName() +
-                                    " after closing inventory: " + ex.getMessage());
-                            return null;
-                        })
-                        .thenRun(() -> {
-                            debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                        .whenComplete((result, ex) -> {
+                            if (ex != null) {
+                                plugin.getLogger().severe("Failed to save data for " + player.getName() +
+                                        " after closing inventory: " + ex.getMessage());
+                            } else {
+                                debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                            }
+                            dataLockManager.unlock(player.getUniqueId());
                         });
             }
         }
