@@ -87,7 +87,7 @@ enderchest-options:
   # The block will function as a normal vanilla Ender Chest.
   # Useful if you want to reserve the block for vanilla use only.
   # Note: If this option is true, don't set true for `disable-enderchest-click` above.
-  disable-plugin-on-endechest-block: false
+  vanilla-enderchest-block: false
 
 # Default settings for players
 default-player:
