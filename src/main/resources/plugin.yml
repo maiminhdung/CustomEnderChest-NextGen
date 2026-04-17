@@ -1,6 +1,6 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.1.1-dev
+version: 2.1.1
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP

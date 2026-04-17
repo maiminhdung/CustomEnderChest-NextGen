@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.maiminhdung'
-version = '2.1.1-dev'
+version = '2.1.1'
 
 repositories {
     mavenCentral()
@@ -54,7 +54,7 @@ tasks {
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)
-        archiveVersion.set("2.1.1-dev")
+        archiveVersion.set("2.1.1")
     }
 
     build {
