@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.maiminhdung'
-version = '2.1.0'
+version = '2.1.1'
 
 repositories {
     mavenCentral()
@@ -25,6 +25,10 @@ repositories {
         name = "mvnrepository"
         url = "https://mvnrepository.com/artifact/"
     }
+    maven {
+        name = "faststats"
+        url = "https://repo.faststats.dev/releases"
+    }
 }
 
 dependencies {
@@ -32,6 +36,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
     implementation("org.bstats:bstats-bukkit:3.1.0")
+    implementation("dev.faststats.metrics:bukkit:0.22.0")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("com.h2database:h2:2.3.232")
     implementation("com.github.NighterDevelopment:PluginUpdateCore:1.0.4")
@@ -42,10 +47,14 @@ tasks {
         relocate("com.zaxxer.hikari", "org.maiminhdung.customenderchest.lib.hikari")
         relocate("org.h2", "org.maiminhdung.customenderchest.lib.h2")
         relocate("com.NighterDevelopment.PluginUpdateCore", "org.maiminhdung.customenderchest.lib.pluginupdatecore")
+        relocate("org.bstats", "org.maiminhdung.customenderchest.lib.bstats")
+        relocate("dev.faststats", "org.maiminhdung.customenderchest.lib.faststats")
+
+        exclude("META-INF/faststats.properties")
 
         archiveBaseName.set("CustomEnderChest-NextGen")
         archiveClassifier.set(null)
-        archiveVersion.set("2.1.0")
+        archiveVersion.set("2.1.1")
     }
 
     build {

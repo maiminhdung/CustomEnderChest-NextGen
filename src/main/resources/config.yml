@@ -15,6 +15,9 @@ general:
   # Set to true to enable bStats metrics, which helps the developer understand how the plugin is used.
   # Set to false to disable it.
   bstats-metrics: true
+  # Set to true to enable FastStats metrics for error tracking and analytics.
+  # Set to false to disable it.
+  faststats-metrics: true
   # Enable or disable automatic update checking.
   update-checker: true
 
@@ -84,7 +87,7 @@ enderchest-options:
   # The block will function as a normal vanilla Ender Chest.
   # Useful if you want to reserve the block for vanilla use only.
   # Note: If this option is true, don't set true for `disable-enderchest-click` above.
-  disable-plugin-on-endechest-block: false
+  vanilla-enderchest-block: false
 
 # Default settings for players
 default-player:

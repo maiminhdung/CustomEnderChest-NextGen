@@ -2,7 +2,7 @@
 prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
 messages:
   no-permission: "<red>你没有权限使用这个。</red>"
-  no-permission-block-open: "<red>你没有权限点击打开末影箱.</red>"
+  no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>该命令只能由玩家执行。</red>"
   reload-success: "<green>配置与语言文件重载完毕。</green>"
   data-still-loading: "<yellow>数据仍在载入，请稍候...</yellow>"
@@ -13,7 +13,7 @@ messages:
   migration-data-incompatible: "<yellow>警告：末影箱数据与新服务器版本（1.21.5+）不兼容。"
   migration-data-cleared: "<yellow>出于兼容性考虑，你的末影箱数据已被重置。旧数据仍然保留在数据库中。"
   migration-contact-admin: "<gray>若需要恢复丢失的物品，请联系管理员。"
-  data-migrated: "<green>末影箱内容已合并到新的玩家账户中."
+  data-migrated: "<green>Your enderchest data has been migrated to your new account."
   # 溢出相关消息
   overflow-items-saved: "<yellow>⚠ 部分当前权限不能存取的物品已转移到溢出仓库。"
   overflow-will-restore: "<gray>升级末影箱后会自动回到普通仓库中。"
@@ -24,6 +24,21 @@ command:
   delete-usage: "<red>命令用法：<gray>/<label> delete <player>"
   delete-success: "<green>成功删除了玩家 <white><player></white> 的末影箱数据。"
   loading-chest: "<yellow>正在载入 <white><player> 的</white> 末影箱..."
+  import-usage: "<red>Usage: <gray>/<label> import <vanilla>"
+  import-invalid-type: "<red>Invalid import type. Use: <gray>vanilla"
+  migrate-usage: "<yellow>Usage: <gray>/cec migrate <yml|h2|mysql> <yml|h2|mysql>"
+  migrate-example: "<gray>Example: /cec migrate yml mysql"
+  migrate-running: "<red>Another migration process is currently running. Please wait!"
+  migrate-same-type: "<red>Source and target formats cannot be the same."
+  migrate-init: "<yellow>Initializing database connection..."
+  migrate-conn-source-err: "<red>Error connecting to source format. Migration cancelled."
+  migrate-conn-target-err: "<red>Error connecting to target format. Migration cancelled."
+  migrate-start: "<yellow>Starting data migration from <source> to <target>..."
+  migrate-no-data: "<red>No data found to migrate."
+  migrate-success: "<green>Data migration complete! Success: <success>/<total>, Failed: <failed>"
+  migrate-note: "<yellow>⚠ 注意：<white>迁移完成后，请关闭服务器，在 config.yml 中修改存储类型，然后重新启动服务器以使用迁移后的数据。"
+  migrate-error-unknown: "<red>An unknown error occurred during migration. Check Console for details."
+  migrate-in-progress: "<red>System is undergoing data maintenance (migration), you cannot open the chest right now!"
 titles:
   enderchest: "<level> - <light_purple><player> 的箱子"
   admin_view: "<dark_red>管理员浏览：<white><player>"
@@ -36,8 +51,8 @@ levels:
   '5': "&d&l六阶" # 6 行（54 格）
 
 import:
-  started: "<green>正在开始转化所有在线玩家的原版末影箱数据..."
-  complete: "<green>导入完毕! 共转化 <white><imported></white> 位玩家, 跳过了 <white><skipped></white> 位."
-  auto-import-started: "<yellow>正在自动导入你的原版末影箱数据..."
-  auto-import-complete: "<green>自动导入完毕! <white><count></white> 个物品已进入新末影箱."
-  auto-import-failed: "<red>导入原版末影箱数据时出现问题. 请联系管理员."
+  started: "<green>Starting vanilla ender chest import for all online players..."
+  complete: "<green>Import complete! <white><imported></white> players imported, <white><skipped></white> skipped."
+  auto-import-started: "<yellow>Auto-importing your vanilla ender chest items..."
+  auto-import-complete: "<green>Auto-import complete! <white><count></white> items imported from vanilla ender chest."
+  auto-import-failed: "<red>Failed to auto-import your vanilla ender chest data. Please contact an admin."

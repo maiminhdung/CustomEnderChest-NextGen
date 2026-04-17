@@ -39,7 +39,7 @@ public class ConvertAllCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         // Check admin permission
-        if (!sender.hasPermission("CustomEnderChest.admin")) {
+        if (sender instanceof org.bukkit.entity.Player && !sender.hasPermission("CustomEnderChest.admin")) {
             sender.sendMessage("§cYou don't have permission to use this command!");
             return true;
         }
@@ -141,11 +141,11 @@ public class ConvertAllCommand implements CommandExecutor {
                     } else {
                         // Update database with converted data
                         String updateSql = "UPDATE " + tableName + " SET chest_data = ? WHERE player_uuid = ?";
-                        PreparedStatement updatePs = conn.prepareStatement(updateSql);
-                        updatePs.setString(1, newData);
-                        updatePs.setString(2, playerData.uuid.toString());
-                        updatePs.executeUpdate();
-                        updatePs.close();
+                        try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                            updatePs.setString(1, newData);
+                            updatePs.setString(2, playerData.uuid.toString());
+                            updatePs.executeUpdate();
+                        }
 
                         successCount.incrementAndGet();
                         plugin.getLogger().info("Converted data for: " + playerData.playerName + " (" + items.length + " slots)");

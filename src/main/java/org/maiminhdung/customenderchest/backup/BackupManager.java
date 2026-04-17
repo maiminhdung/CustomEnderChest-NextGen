@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.backup;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import lombok.Getter;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
@@ -121,6 +123,7 @@ public class BackupManager {
                 if (plugin.config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
+                ERROR_TRACKER.trackError(e);
                 return false;
             }
         });
@@ -391,6 +394,7 @@ public class BackupManager {
             if (plugin.config().getBoolean("general.debug")) {
                 e.printStackTrace();
             }
+            ERROR_TRACKER.trackError(e);
         }
     }
 

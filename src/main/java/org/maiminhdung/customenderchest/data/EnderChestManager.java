@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.data;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
@@ -29,6 +31,7 @@ public class EnderChestManager {
     private final EnderChest plugin;
     private final SoundHandler soundHandler;
     private final DataLockManager dataLockManager;
+    @Getter
     private final Cache<UUID, Inventory> liveData;
     private final Scheduler.Task autoSaveTask;
     private final Scheduler.Task inventoryTrackerTask;
@@ -92,6 +95,7 @@ public class EnderChestManager {
         final String playerName = player.getName();
 
         plugin.getStorageManager().getStorage().loadEnderChest(currentUUID)
+                .orTimeout(15, TimeUnit.SECONDS)
                 .thenCompose(items -> {
                     // If no data found for current UUID, try to find data by player name
                     // This handles the case where player switches between online/offline mode
@@ -233,6 +237,11 @@ public class EnderChestManager {
                             long duration = (System.nanoTime() - startTime) / 1_000_000; // DEBUG: End timer
                             plugin.getDebugLogger().log(
                                     "Cache is ready for " + player.getName() + ". (Load time: " + duration + "ms)");
+                            
+                            // Metrics tracking
+                            if (plugin.getMetricsDataProvider() != null) {
+                                plugin.getMetricsDataProvider().recordLoad();
+                            }
                         } finally {
                             dataLockManager.unlock(player.getUniqueId());
                             plugin.getDebugLogger().log("Data lock released for " + player.getName());
@@ -350,9 +359,11 @@ public class EnderChestManager {
             plugin.getLogger().info("All player data has been saved successfully.");
         } catch (TimeoutException e) {
             plugin.getLogger().warning("Shutdown save timed out after 30 seconds. Some data may not have been saved.");
+            ERROR_TRACKER.trackError(e);
         } catch (Exception e) {
             plugin.getLogger().severe("Error during shutdown save: " + e.getMessage());
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
     }
 
@@ -554,12 +565,20 @@ public class EnderChestManager {
         if (cacheSnapshot.isEmpty())
             return CompletableFuture.completedFuture(null);
         plugin.getLogger().info("Force-saving data for " + cacheSnapshot.size() + " players...");
+        
+        // During shutdown, we clone inventory contents immediately
+        // This is safer because we're on the main/global thread during shutdown
         CompletableFuture<?>[] futures = cacheSnapshot.stream()
                 .map(entry -> {
                     UUID uuid = entry.getKey();
                     Player p = Bukkit.getPlayer(uuid);
                     String name = (p != null) ? p.getName() : Bukkit.getOfflinePlayer(uuid).getName();
-                    return saveEnderChest(uuid, name, entry.getValue());
+                    Inventory inv = entry.getValue();
+                    // Clone contents immediately to avoid thread safety issues
+                    ItemStack[] contents = cleanInventoryForSave(inv.getContents().clone());
+                    int size = inv.getSize();
+                    return plugin.getStorageManager().getStorage()
+                            .saveEnderChest(uuid, name, size, contents);
                 })
                 .filter(Objects::nonNull).toArray(CompletableFuture[]::new);
         return CompletableFuture.allOf(futures);
@@ -567,6 +586,8 @@ public class EnderChestManager {
 
     // Auto-save all cached data periodically to prevent data loss.
     private void autoSaveAll() {
+        // On Folia, we need to get inventory contents from the correct region thread
+        // So we run this on global thread first to collect data safely
         Set<Map.Entry<UUID, Inventory>> cacheSnapshot = new java.util.HashSet<>(liveData.asMap().entrySet());
         if (cacheSnapshot.isEmpty()) {
             return;
@@ -592,19 +613,52 @@ public class EnderChestManager {
                 continue;
             }
 
-            String name = p.getName();
-            CompletableFuture<Void> future = saveEnderChest(uuid, name, entry.getValue())
-                    .exceptionally(ex -> {
-                        plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
-                        return null;
-                    });
-            futures.add(future);
+            final String name = p.getName();
+            final Inventory inv = entry.getValue();
+            final int size = inv.getSize();
+            
+            // On Folia, we need to clone the inventory contents on the correct entity thread
+            // to avoid cross-region thread access violations
+            if (Scheduler.isFolia()) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                final Player finalPlayer = p;
+                Scheduler.runEntityTask(p, () -> {
+                    // Now we're on the correct region thread for this player
+                    if (!finalPlayer.isOnline()) {
+                        future.complete(null);
+                        return;
+                    }
+                    ItemStack[] contents = cleanInventoryForSave(inv.getContents().clone());
+                    // Now save asynchronously
+                    plugin.getStorageManager().getStorage()
+                            .saveEnderChest(uuid, name, size, contents)
+                            .whenComplete((result, ex) -> {
+                                if (ex != null) {
+                                    plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                                } else {
+                                    plugin.getDebugLogger().log("Auto-saved data for " + name);
+                                }
+                                future.complete(null);
+                            });
+                });
+                futures.add(future);
+            } else {
+                // On non-Folia servers, we can safely access inventory from async thread
+                CompletableFuture<Void> future = saveEnderChest(uuid, name, inv)
+                        .exceptionally(ex -> {
+                            plugin.getLogger().warning("Failed to auto-save data for " + name + ": " + ex.getMessage());
+                            return null;
+                        });
+                futures.add(future);
+            }
         }
 
         // Wait for all saves to complete to ensure data consistency
         if (!futures.isEmpty()) {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenRun(() -> plugin.getDebugLogger().log("Auto-save completed for all players."));
+                    .thenRun(() -> {
+                        plugin.getDebugLogger().log("Auto-save completed for all players.");
+                    });
         }
     }
 
@@ -617,9 +671,17 @@ public class EnderChestManager {
 
         return plugin.getStorageManager().getStorage()
                 .saveEnderChest(uuid, playerName, inv.getSize(), cleanedContents)
+                .orTimeout(15, TimeUnit.SECONDS)
                 .thenRun(() -> {
-                    long duration = (System.nanoTime() - startTime) / 1_000_000; // DEBUG: End timer
+                    long elapsedNanos = System.nanoTime() - startTime;
+                    long duration = elapsedNanos / 1_000_000; // DEBUG: End timer
                     plugin.getDebugLogger().log("Data for " + playerName + " saved in " + duration + "ms.");
+                    
+                    // Metrics tracking
+                    if (plugin.getMetricsDataProvider() != null) {
+                        plugin.getMetricsDataProvider().recordSave();
+                        plugin.getMetricsDataProvider().recordSaveTime(elapsedNanos);
+                    }
                 });
     }
 
@@ -643,7 +705,8 @@ public class EnderChestManager {
     // Save ender chest data with specified size and items, used for offline
     // players.
     public CompletableFuture<Void> saveEnderChest(UUID uuid, String playerName, int size, ItemStack[] items) {
-        return plugin.getStorageManager().getStorage().saveEnderChest(uuid, playerName, size, items);
+        return plugin.getStorageManager().getStorage().saveEnderChest(uuid, playerName, size, items)
+                .orTimeout(15, TimeUnit.SECONDS);
     }
 
     // Get the cached inventory for a player, or null if not loaded.

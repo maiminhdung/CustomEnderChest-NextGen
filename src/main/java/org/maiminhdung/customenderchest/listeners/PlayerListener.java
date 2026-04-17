@@ -62,8 +62,13 @@ public class PlayerListener implements Listener {
             return;
         if (event.getClickedBlock().getType() != Material.ENDER_CHEST)
             return;
-        if (plugin.getConfig().getBoolean("enderchest-options.disable-plugin-on-endechest-block"))
+        if (plugin.getConfig().getBoolean("enderchest-options.vanilla-enderchest-block"))
             return;
+
+        // Do not open if player is sneaking and holding an item (allows block placement)
+        if (player.isSneaking() && (!player.getInventory().getItemInMainHand().getType().isAir() || !player.getInventory().getItemInOffHand().getType().isAir())) {
+            return;
+        }
 
         // Cancel the event immediately to prevent vanilla enderchest GUI from opening
         event.setCancelled(true);
@@ -78,6 +83,10 @@ public class PlayerListener implements Listener {
         if (!player.isOnline()) {
             return;
         }
+        if (isMigrating(player)) {
+            return;
+        }
+
         // Let the EnderChestManager handle the permission check logic now
         plugin.getEnderChestManager().openEnderChest(player);
     }
@@ -100,6 +109,17 @@ public class PlayerListener implements Listener {
 
         // Check disable-enderchest-click config setting
         return plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click", true);
+    }
+
+    private boolean isMigrating(Player player) {
+        if (plugin.getCommand("customenderchest") != null
+                && plugin.getCommand("customenderchest").getExecutor() instanceof org.maiminhdung.customenderchest.commands.EnderChestCommand cmd) {
+            if (cmd.getMigrationManager().isMigrating()) {
+                player.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-in-progress"));
+                return true;
+            }
+        }
+        return false;
     }
 
     // Handle inventory clicks to enforce slot restrictions and admin sync
@@ -191,11 +211,10 @@ public class PlayerListener implements Listener {
 
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
-            if (dataLockManager.isLocked(targetUUID)) {
+            if (!dataLockManager.tryLock(targetUUID)) {
                 player.sendMessage(localeManager.getPrefixedComponent("messages.data-still-loading"));
                 return;
             }
-            dataLockManager.lock(targetUUID); // Lock data before processing
 
             try {
                 debug.log("Admin " + player.getName() + " finished editing " + targetUUID + "'s chest. Saving data...");
@@ -250,19 +269,20 @@ public class PlayerListener implements Listener {
             // loss
             DataLockManager dataLockManager = plugin.getDataLockManager();
 
-            // Only save if not currently locked (prevent double-save)
-            if (!dataLockManager.isLocked(player.getUniqueId())) {
+            // Lock to prevent double-save race conditions
+            if (dataLockManager.tryLock(player.getUniqueId())) {
                 debug.log("Player " + player.getName() + " closed their ender chest. Saving data...");
 
                 // Save asynchronously without blocking - let CompletableFuture handle it
                 manager.saveEnderChest(player.getUniqueId(), player.getName(), closedInventory)
-                        .exceptionally(ex -> {
-                            plugin.getLogger().severe("Failed to save data for " + player.getName() +
-                                    " after closing inventory: " + ex.getMessage());
-                            return null;
-                        })
-                        .thenRun(() -> {
-                            debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                        .whenComplete((result, ex) -> {
+                            if (ex != null) {
+                                plugin.getLogger().severe("Failed to save data for " + player.getName() +
+                                        " after closing inventory: " + ex.getMessage());
+                            } else {
+                                debug.log("Data for " + player.getName() + " saved after closing inventory.");
+                            }
+                            dataLockManager.unlock(player.getUniqueId());
                         });
             }
         }

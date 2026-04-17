@@ -1,5 +1,7 @@
 package org.maiminhdung.customenderchest.storage.impl;
 
+import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.data.ItemSerializer;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -17,9 +19,21 @@ public class H2Storage implements StorageInterface {
     private final StorageManager storageManager;
     private final String tableName;
 
+    // Regex pattern for valid SQL table names (alphanumeric and underscores only)
+    private static final java.util.regex.Pattern VALID_TABLE_NAME = java.util.regex.Pattern.compile("^[a-zA-Z0-9_]+$");
+
     public H2Storage(StorageManager storageManager) {
         this.storageManager = storageManager;
-        this.tableName = EnderChest.getInstance().config().getString("storage.table_name", "custom_enderchests");
+        String configTableName = EnderChest.getInstance().config().getString("storage.table_name", "custom_enderchests");
+        
+        // Validate table name to prevent SQL injection
+        if (!VALID_TABLE_NAME.matcher(configTableName).matches()) {
+            EnderChest.getInstance().getLogger().severe("[H2Storage] Invalid table name in config: '" + configTableName + 
+                    "'. Using default 'custom_enderchests'. Table names must only contain letters, numbers, and underscores.");
+            this.tableName = "custom_enderchests";
+        } else {
+            this.tableName = configTableName;
+        }
     }
 
     @Override
@@ -39,6 +53,7 @@ public class H2Storage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize H2 table!");
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
 
         // Overflow storage table
@@ -54,6 +69,7 @@ public class H2Storage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize overflow table!");
             e.printStackTrace();
+            ERROR_TRACKER.trackError(e);
         }
     }
 
@@ -65,32 +81,33 @@ public class H2Storage implements StorageInterface {
                     PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setQueryTimeout(10); // 10 second query timeout
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    String data = rs.getString("chest_data");
-                    try {
-                        ItemStack[] items = ItemSerializer.fromBase64(data);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String data = rs.getString("chest_data");
+                        try {
+                            ItemStack[] items = ItemSerializer.fromBase64(data);
 
-                        // Auto-save migrated data in new format
-                        if (items != null && items.length > 0) {
-                            try {
-                                String newData = ItemSerializer.toBase64(items);
-                                if (!newData.equals(data)) {
-                                    EnderChest.getInstance().getLogger().info(
-                                            "[Migration] Auto-saving migrated data for player " + playerUUID);
-                                    autoSaveMigratedData(playerUUID, newData);
+                            // Auto-save migrated data in new format
+                            if (items != null && items.length > 0) {
+                                try {
+                                    String newData = ItemSerializer.toBase64(items);
+                                    if (!newData.equals(data)) {
+                                        EnderChest.getInstance().getLogger().info(
+                                                "[Migration] Auto-saving migrated data for player " + playerUUID);
+                                        autoSaveMigratedData(playerUUID, newData);
+                                    }
+                                } catch (Exception e) {
+                                    // Ignore save errors, data is already loaded successfully
                                 }
-                            } catch (Exception e) {
-                                // Ignore save errors, data is already loaded successfully
                             }
-                        }
 
-                        return items;
-                    } catch (Exception e) {
-                        EnderChest.getInstance().getLogger().warning(
-                                "Failed to deserialize enderchest data for player " + playerUUID + ": "
-                                        + e.getMessage());
-                        return new ItemStack[0];
+                            return items;
+                        } catch (Exception e) {
+                            EnderChest.getInstance().getLogger().warning(
+                                    "Failed to deserialize enderchest data for player " + playerUUID + ": "
+                                            + e.getMessage());
+                            return new ItemStack[0];
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -108,6 +125,8 @@ public class H2Storage implements StorageInterface {
                 if (EnderChest.getInstance().config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
+                ERROR_TRACKER.trackError(e);
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });
@@ -138,13 +157,15 @@ public class H2Storage implements StorageInterface {
                     PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    return rs.getInt("chest_size");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("chest_size");
+                    }
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().warning(
                         "[H2Storage] Failed to load chest size for " + playerUUID + ": " + e.getMessage());
+                throw new java.util.concurrent.CompletionException(e);
             }
             return 0;
         });
@@ -170,6 +191,8 @@ public class H2Storage implements StorageInterface {
                 EnderChest.getInstance().getLogger().severe(
                         "[H2Storage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
                                 + e.getMessage());
+                ERROR_TRACKER.trackError(e);
+                throw new RuntimeException("Failed to save enderchest data", e);
             }
         });
     }
@@ -194,10 +217,12 @@ public class H2Storage implements StorageInterface {
             String sql = "SELECT player_name FROM " + tableName + " WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    return rs.getString("player_name");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("player_name");
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -213,10 +238,12 @@ public class H2Storage implements StorageInterface {
             String sql = "SELECT player_uuid FROM " + tableName + " WHERE LOWER(player_name) = LOWER(?)";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerName);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    return UUID.fromString(rs.getString("player_uuid"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return UUID.fromString(rs.getString("player_uuid"));
+                    }
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().warning(
@@ -233,6 +260,7 @@ public class H2Storage implements StorageInterface {
                     "KEY(player_uuid) VALUES(?, ?, ?)";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 String data = ItemSerializer.toBase64(items);
                 ps.setString(1, playerUUID.toString());
                 ps.setString(2, data);
@@ -240,7 +268,8 @@ public class H2Storage implements StorageInterface {
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
-                e.printStackTrace();
+                ERROR_TRACKER.trackError(e);
+                throw new RuntimeException("Failed to save overflow items", e);
             }
         });
     }
@@ -251,19 +280,22 @@ public class H2Storage implements StorageInterface {
             String sql = "SELECT overflow_data FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    String data = rs.getString("overflow_data");
-                    try {
-                        return ItemSerializer.fromBase64(data);
-                    } catch (Exception e) {
-                        EnderChest.getInstance().getLogger().warning("Failed to load overflow items for " + playerUUID);
-                        return new ItemStack[0];
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String data = rs.getString("overflow_data");
+                        try {
+                            return ItemSerializer.fromBase64(data);
+                        } catch (Exception e) {
+                            EnderChest.getInstance().getLogger().warning("Failed to load overflow items for " + playerUUID);
+                            return new ItemStack[0];
+                        }
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                throw new java.util.concurrent.CompletionException(e);
             }
             return null;
         });
@@ -275,6 +307,7 @@ public class H2Storage implements StorageInterface {
             String sql = "DELETE FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
                 ps.executeUpdate();
             } catch (Exception e) {
@@ -289,10 +322,12 @@ public class H2Storage implements StorageInterface {
             String sql = "SELECT COUNT(*) FROM " + tableName + "_overflow WHERE player_uuid = ?";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1) > 0;
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -309,8 +344,9 @@ public class H2Storage implements StorageInterface {
                     PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setQueryTimeout(10);
                 ps.setString(1, playerUUID.toString());
-                ResultSet rs = ps.executeQuery();
-                return rs.next();
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().warning(
                         "[H2Storage] Failed to check data existence for " + playerUUID + ": " + e.getMessage());
@@ -336,11 +372,13 @@ public class H2Storage implements StorageInterface {
                     "FROM " + tableName;
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(countSql)) {
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    totalPlayers = rs.getInt("total");
-                    playersWithItems = rs.getInt("with_items");
-                    totalDataSize = rs.getLong("data_size");
+                ps.setQueryTimeout(30);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        totalPlayers = rs.getInt("total");
+                        playersWithItems = rs.getInt("with_items");
+                        totalDataSize = rs.getLong("data_size");
+                    }
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger()
@@ -352,20 +390,22 @@ public class H2Storage implements StorageInterface {
                     + " WHERE chest_data IS NOT NULL AND chest_data != ''";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(itemsSql)) {
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    String data = rs.getString("chest_data");
-                    try {
-                        ItemStack[] items = ItemSerializer.fromBase64(data);
-                        if (items != null) {
-                            for (ItemStack item : items) {
-                                if (item != null && !item.getType().isAir()) {
-                                    totalItems++;
+                ps.setQueryTimeout(60);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String data = rs.getString("chest_data");
+                        try {
+                            ItemStack[] items = ItemSerializer.fromBase64(data);
+                            if (items != null) {
+                                for (ItemStack item : items) {
+                                    if (item != null && !item.getType().isAir()) {
+                                        totalItems++;
+                                    }
                                 }
                             }
+                        } catch (Exception ignored) {
+                            // Skip corrupted data
                         }
-                    } catch (Exception ignored) {
-                        // Skip corrupted data
                     }
                 }
             } catch (Exception e) {
@@ -377,9 +417,11 @@ public class H2Storage implements StorageInterface {
                     + "_overflow WHERE overflow_data IS NOT NULL";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(overflowCountSql)) {
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    totalOverflowPlayers = rs.getInt("total");
+                ps.setQueryTimeout(30);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        totalOverflowPlayers = rs.getInt("total");
+                    }
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger()
@@ -391,20 +433,22 @@ public class H2Storage implements StorageInterface {
                     + "_overflow WHERE overflow_data IS NOT NULL";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(overflowItemsSql)) {
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    String data = rs.getString("overflow_data");
-                    try {
-                        ItemStack[] items = ItemSerializer.fromBase64(data);
-                        if (items != null) {
-                            for (ItemStack item : items) {
-                                if (item != null && !item.getType().isAir()) {
-                                    totalOverflowItems++;
+                ps.setQueryTimeout(60);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String data = rs.getString("overflow_data");
+                        try {
+                            ItemStack[] items = ItemSerializer.fromBase64(data);
+                            if (items != null) {
+                                for (ItemStack item : items) {
+                                    if (item != null && !item.getType().isAir()) {
+                                        totalOverflowItems++;
+                                    }
                                 }
                             }
+                        } catch (Exception ignored) {
+                            // Skip corrupted data
                         }
-                    } catch (Exception ignored) {
-                        // Skip corrupted data
                     }
                 }
             } catch (Exception e) {
@@ -427,9 +471,11 @@ public class H2Storage implements StorageInterface {
             try (Connection connOvf = storageManager.getConnection();
                     PreparedStatement psOvf = connOvf.prepareStatement(
                             "SELECT player_uuid FROM " + tableName + "_overflow")) {
-                ResultSet rsOvf = psOvf.executeQuery();
-                while (rsOvf.next()) {
-                    overflowUUIDs.add(UUID.fromString(rsOvf.getString("player_uuid")));
+                psOvf.setQueryTimeout(30);
+                try (ResultSet rsOvf = psOvf.executeQuery()) {
+                    while (rsOvf.next()) {
+                        overflowUUIDs.add(UUID.fromString(rsOvf.getString("player_uuid")));
+                    }
                 }
             } catch (Exception ignored) {
             }
@@ -437,36 +483,37 @@ public class H2Storage implements StorageInterface {
             String sql = "SELECT player_uuid, player_name, chest_size, chest_data FROM " + tableName;
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    UUID uuid = UUID.fromString(rs.getString("player_uuid"));
-                    String name = rs.getString("player_name");
-                    int size = rs.getInt("chest_size");
-                    String data = rs.getString("chest_data");
+                ps.setQueryTimeout(60);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        UUID uuid = UUID.fromString(rs.getString("player_uuid"));
+                        String name = rs.getString("player_name");
+                        int size = rs.getInt("chest_size");
+                        String data = rs.getString("chest_data");
 
-                    int itemCount = 0;
-                    boolean isCorrupted = false;
-                    String errorMessage = null;
+                        int itemCount = 0;
+                        boolean isCorrupted = false;
+                        String errorMessage = null;
 
-                    if (data != null && !data.isEmpty()) {
-                        try {
-                            ItemStack[] items = ItemSerializer.fromBase64(data);
-                            if (items != null) {
-                                for (ItemStack item : items) {
-                                    if (item != null && !item.getType().isAir()) {
-                                        itemCount++;
+                        if (data != null && !data.isEmpty()) {
+                            try {
+                                ItemStack[] items = ItemSerializer.fromBase64(data);
+                                if (items != null) {
+                                    for (ItemStack item : items) {
+                                        if (item != null && !item.getType().isAir()) {
+                                            itemCount++;
+                                        }
                                     }
                                 }
+                            } catch (Exception e) {
+                                isCorrupted = true;
+                                errorMessage = e.getMessage();
                             }
-                        } catch (Exception e) {
-                            isCorrupted = true;
-                            errorMessage = e.getMessage();
                         }
+
+                        boolean hasOverflow = overflowUUIDs.contains(uuid);
+                        result.add(new PlayerDataInfo(uuid, name, size, itemCount, hasOverflow, isCorrupted, errorMessage));
                     }
-
-                    boolean hasOverflow = overflowUUIDs.contains(uuid);
-
-                    result.add(new PlayerDataInfo(uuid, name, size, itemCount, hasOverflow, isCorrupted, errorMessage));
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger()
