@@ -76,6 +76,12 @@ storage:
     # Number of inactive days. Data for players who have been offline for this duration will be deleted.
     inactive-days: 90
 
+  # Automatically migrate data by player name if their UUID changes (e.g. Crack -> Premium).
+  # WARNING: Enabling this can allow a cracked player to steal a premium player's items if they change their name.
+  # It is recommended to leave this false and contact server staff to transfer data manually if needed.
+  # Only enable this if your server move from offline server to online server or you know what you're doing.
+  migrate-uuid-by-name: false
+
 # Ender Chest gameplay options
 enderchest-options:
   # Disable opening the custom ender chest by right-clicking an Ender Chest block.

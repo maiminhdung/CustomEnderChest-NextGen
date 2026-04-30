@@ -234,8 +234,8 @@ public class H2Storage implements StorageInterface {
     @Override
     public CompletableFuture<UUID> findUUIDByName(String playerName) {
         return CompletableFuture.supplyAsync(() -> {
-            // Case-insensitive search for player name
-            String sql = "SELECT player_uuid FROM " + tableName + " WHERE LOWER(player_name) = LOWER(?)";
+            // Case-insensitive search for player name, ordered by most recently seen to avoid old/duplicate data
+            String sql = "SELECT player_uuid FROM " + tableName + " WHERE LOWER(player_name) = LOWER(?) ORDER BY last_seen DESC LIMIT 1";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setQueryTimeout(10);

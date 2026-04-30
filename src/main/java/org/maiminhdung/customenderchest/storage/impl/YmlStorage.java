@@ -116,19 +116,29 @@ public class YmlStorage implements StorageInterface {
             File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));
             if (files == null) return null;
 
+            File latestFile = null;
+            long latestTime = -1;
+
             for (File file : files) {
                 try {
                     YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
                     String storedName = config.getString("player-name");
                     if (storedName != null && storedName.equalsIgnoreCase(playerName)) {
-                        // Extract UUID from filename (remove .yml extension)
-                        String filename = file.getName();
-                        String uuidStr = filename.substring(0, filename.length() - 4);
-                        return UUID.fromString(uuidStr);
+                        long modified = file.lastModified();
+                        if (modified > latestTime) {
+                            latestTime = modified;
+                            latestFile = file;
+                        }
                     }
                 } catch (Exception e) {
                     // Skip invalid files
                 }
+            }
+
+            if (latestFile != null) {
+                String filename = latestFile.getName();
+                String uuidStr = filename.substring(0, filename.length() - 4);
+                return UUID.fromString(uuidStr);
             }
             return null;
         });

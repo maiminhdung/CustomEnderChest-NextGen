@@ -83,6 +83,12 @@ public class BackupManager {
                 long startTime = System.currentTimeMillis();
 
                 File backupFile = new File(backupFolder, "backup_" + timestamp + ".zip");
+                
+                // Ensure backup folder exists just in case it was deleted while server was running
+                if (!backupFolder.exists()) {
+                    backupFolder.mkdirs();
+                }
+                
                 plugin.getDebugLogger().log("[Backup] Target file: " + backupFile.getAbsolutePath());
 
                 switch (storageType) {

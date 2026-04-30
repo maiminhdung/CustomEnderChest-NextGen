@@ -99,7 +99,7 @@ public class EnderChestManager {
                 .thenCompose(items -> {
                     // If no data found for current UUID, try to find data by player name
                     // This handles the case where player switches between online/offline mode
-                    if (items == null) {
+                    if (items == null && plugin.config().getBoolean("storage.migrate-uuid-by-name", false)) {
                         plugin.getDebugLogger().log("No data found for UUID " + currentUUID + ", searching by name: " + playerName);
                         return plugin.getStorageManager().getStorage().findUUIDByName(playerName)
                                 .thenCompose(oldUUID -> {
@@ -278,8 +278,8 @@ public class EnderChestManager {
                             }
                         });
 
-                        // Optionally delete old data (commented out to keep as backup)
-                        // plugin.getStorageManager().getStorage().deleteEnderChest(oldUUID);
+                        // Rename old data to prevent it from being migrated again and stealing items
+                        plugin.getStorageManager().getStorage().saveEnderChest(oldUUID, "[Migrated] " + player.getName(), size, items);
 
                         // Notify player about migration
                         Scheduler.runEntityTask(player, () -> {
