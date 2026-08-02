@@ -5,7 +5,7 @@
 # All messages, titles, and user-facing text are now managed in the /lang directory.
 
 # Internal configuration schema version. Do not change this value manually.
-config-version: "2.1.3"
+config-version: "2.1.3-dev"
 
 # General plugin settings
 general:
@@ -171,4 +171,3 @@ sounds:
     name: "ENTITY_PLAYER_LEVELUP"
     volume: 0.8
     pitch: 1.5
-
