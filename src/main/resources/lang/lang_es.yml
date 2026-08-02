@@ -1,0 +1,77 @@
+# Prefijo utilizado para todos los mensajes
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>EnderChest</gradient>]</gray> "
+
+messages:
+  no-permission: "<red>No tienes permiso para eso.</red>"
+  no-permission-block-open: "<red>No tienes permiso para abrir el cofre de Ender al hacer clic en él.</red>"
+  players-only: "<red>Este comando solo puede ser ejecutado por un jugador.</red>"
+  reload-success: "<green>Los archivos de configuración e idioma han sido recargados.</green>"
+  data-still-loading: "<yellow>Tus datos todavía están cargando, por favor espera...</yellow>"
+  data-busy: "<red>Los datos del jugador están ocupados. Por favor, inténtalo de nuevo en breve.</red>"
+  save-error: "<red>Ha ocurrido un error al guardar los datos. Por favor, revisa la consola.</red>"
+  invalid-player: "<red>Nombre de jugador no válido.</red>"
+
+  # Mensajes de migración
+  migration-data-incompatible: "<yellow>Advertencia: Los datos de tu cofre de Ender son incompatibles con la nueva versión del servidor (1.21.5+)."
+  migration-data-cleared: "<yellow>Tu cofre de Ender ha sido reiniciado debido a incompatibilidad. Los datos antiguos aún se conservan en la base de datos."
+  migration-contact-admin: "<gray>Por favor, contacta con un administrador si necesitas recuperar objetos."
+  data-migrated: "<green>Los datos de tu cofre de Ender han sido migrados a tu nueva cuenta."
+
+  # Mensajes de excedentes
+  overflow-items-saved: "<yellow>⚠ Algunos objetos que exceden tus permisos han sido guardados en el almacenamiento de excedentes."
+  overflow-will-restore: "<gray>Se restaurarán automáticamente cuando mejores tu cofre de Ender o recupéralos usando /ec overflow."
+  overflow-items-restored: "<green>✓ ¡Se han restaurado <count> objetos del almacenamiento de excedentes!"
+  overflow-login-warning: "<yellow>⚠ Tienes <count> objeto(s) en el almacenamiento de excedentes. Usa <command> para reclamarlos."
+  overflow-login-warning-expiring: "<yellow>⚠ ¡Tienes <count> objeto(s) en excedentes que caducarán en <days> día(s)! Usa <command> para reclamarlos."
+  overflow-expired: "<red>Tus objetos excedentes (<count> objeto(s)) han caducado y han sido eliminados."
+  overflow-fee-charged: "<yellow>Se han cobrado <amount> por recuperar <count> objeto(s) de excedentes."
+  overflow-fee-insufficient: "<red>Necesitas al menos <amount> para recuperar tus objetos excedentes. Dinero: <balance>"
+  overflow-fee-no-vault: "<red>No se ha encontrado el plugin de economía (Vault). Las tarifas de recuperación están desactivadas."
+
+command:
+  usage: "<red>Uso: <gray>/<label> <usage>"
+  player-not-found: "<red>El jugador '<player>' no ha sido encontrado o no tiene datos."
+  delete-usage: "<red>Uso: <gray>/<label> delete <player>"
+  delete-success: "<green>Se han eliminado con éxito los datos del cofre de Ender de <white><player></white>."
+  loading-chest: "<yellow>Cargando el cofre de Ender de <white><player></white>..."
+  import-usage: "<red>Uso: <gray>/<label> import <vanilla>"
+  import-invalid-type: "<red>Tipo de importación no válido. Usa: <gray>vanilla"
+  migrate-usage: "<yellow>Uso: <gray>/<label> migrate <yml|h2|mysql> <yml|h2|mysql>"
+  migrate-example: "<gray>Ejemplo: /<label> migrate yml mysql"
+  migrate-running: "<red>Otro proceso de migración está en ejecución. ¡Por favor, espera!"
+  migrate-same-type: "<red>Los formatos de origen y destino no pueden ser el mismo."
+  migrate-init: "<yellow>Inicializando la conexión a la base de datos..."
+  migrate-conn-source-err: "<red>Error al conectar con el formato de origen. Migración cancelada."
+  migrate-conn-target-err: "<red>Error al conectar con el formato de destino. Migración cancelada."
+  migrate-start: "<yellow>Iniciando la migración de datos de <source> a <target>..."
+  migrate-no-data: "<red>No se han encontrado datos para migrar."
+  migrate-success: "<green>¡Migración de datos completada! Éxitos: <success>/<total>, fallos: <failed>"
+  migrate-note: "<yellow>⚠ Nota: <white>Para usar los datos migrados, apaga el servidor, actualiza el tipo de almacenamiento en config.yml y luego reinicia el servidor."
+  migrate-error-unknown: "<red>Ha ocurrido un error desconocido durante la migración. Revisa la consola para más detalles."
+  migrate-in-progress: "<red>El sistema está en mantenimiento de datos (migración), ¡no puedes abrir el cofre en este momento!"
+  overflow-title: "<dark_purple>Excedentes de <player>"
+  overflow-admin-title: "<dark_red>Excedentes de administrador: <white><player>"
+  overflow-empty: "<green>No tienes objetos en excedentes."
+  overflow-admin-empty: "<green><player> no tiene objetos excedentes."
+  overflow-no-enderchest: "<red>Necesitas un cofre de Ender para reclamar los objetos excedentes."
+  overflow-claimed: "<green>✓ ¡Se han reclamado <count> objeto(s) excedentes!"
+  overflow-enderchest-full: "<yellow>Tu inventario está lleno. Los objetos restantes ahora son excedentes."
+  overflow-claim-failed: "<red>Error al reclamar los objetos excedentes. Por favor, inténtalo de nuevo."
+
+titles:
+  enderchest: "<level> - <light_purple>Cofre de <player>"
+  admin_view: "<dark_red>Vista de administrador: <white><player>"
+
+levels:
+  '0': "&fNivel 1" # 1 fila (9 espacios)
+  '1': "&aNivel 2" # 2 filas (18 espacios)
+  '2': "&bNivel 3" # 3 filas (27 espacios)
+  '3': "&eNivel 4" # 4 filas (36 espacios)
+  '4': "&6Nivel 5" # 5 filas (45 espacios)
+  '5': "&d&lNivel 6" # 6 filas (54 espacios)
+
+import:
+  started: "<green>Iniciando la importación de cofres de Ender vanilla para todos los jugadores (conectados y desconectados)..."
+  complete: "<green>¡Importación completada! <white><imported></white> importados, <white><skipped></white> omitidos, <white><failed></white> fallidos."
+  failed-details: "<red>Jugadores fallidos: <players>"
+  nbtapi-missing: "<red>El plugin NBTAPI es necesario para este comando. Por favor, instala NBTAPI en tu servidor."
