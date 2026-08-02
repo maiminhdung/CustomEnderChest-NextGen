@@ -4,6 +4,9 @@
 # Thank you for using the refactored version!
 # All messages, titles, and user-facing text are now managed in the /lang directory.
 
+# Internal configuration schema version. Do not change this value manually.
+config-version: "2.1.3"
+
 # General plugin settings
 general:
   # Select the language file to use.
@@ -20,6 +23,17 @@ general:
   faststats-metrics: true
   # Enable or disable automatic update checking.
   update-checker: true
+
+# Command settings
+# Changes are applied immediately with the currently active reload command.
+commands:
+  # Main command label, without the leading slash.
+  main: "cec"
+  # Optional aliases. Use `aliases: []` to disable all aliases.
+  aliases:
+    - "ec"
+    - "customenderchest"
+    - "customec"
 
 # Backup settings
 backup:
@@ -130,7 +144,7 @@ default-player:
   # 27 equals 3 rows, the same as a vanilla Ender Chest.
   # Default permission level is CustomEnderChest.level.3 (27 slots).
   size: 27
-  # Allow players to use /cec, /ec, /customec commands by default.
+  # Allow players to use the configured command and aliases by default.
   # If false, players will need "CustomEnderChest.commands" permission to use commands.
   allow-command: true
 

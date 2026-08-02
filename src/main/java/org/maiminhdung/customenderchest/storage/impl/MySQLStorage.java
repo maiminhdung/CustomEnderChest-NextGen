@@ -1,7 +1,5 @@
 package org.maiminhdung.customenderchest.storage.impl;
 
-import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
-
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.data.ItemSerializer;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -28,10 +26,10 @@ public class MySQLStorage implements StorageInterface {
         this.storageManager = storageManager;
         this.ioExecutor = storageManager.getIoExecutor();
         String configTableName = EnderChest.getInstance().config().getString("storage.table_name", "custom_enderchests");
-        
+
         // Validate table name to prevent SQL injection
         if (!VALID_TABLE_NAME.matcher(configTableName).matches()) {
-            EnderChest.getInstance().getLogger().severe("[MySQLStorage] Invalid table name in config: '" + configTableName + 
+            EnderChest.getInstance().getLogger().severe("[MySQLStorage] Invalid table name in config: '" + configTableName +
                     "'. Using default 'custom_enderchests'. Table names must only contain letters, numbers, and underscores.");
             this.tableName = "custom_enderchests";
         } else {
@@ -56,7 +54,7 @@ public class MySQLStorage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize MySQL table!");
             e.printStackTrace();
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
         }
 
         // Overflow storage table
@@ -72,14 +70,14 @@ public class MySQLStorage implements StorageInterface {
         } catch (Exception e) {
             EnderChest.getInstance().getLogger().severe("Failed to initialize overflow table!");
             e.printStackTrace();
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
         }
     }
 
     @Override
     public CompletableFuture<ItemStack[]> loadEnderChest(UUID playerUUID) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "SELECT chest_data FROM `" + tableName + "` WHERE `player_uuid` = ?";
+            String sql = "SELECT chest_data, chest_size FROM `" + tableName + "` WHERE `player_uuid` = ?";
             try (Connection conn = storageManager.getConnection();
                     PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUUID.toString());
@@ -87,30 +85,28 @@ public class MySQLStorage implements StorageInterface {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         String data = rs.getString("chest_data");
-                        try {
-                            ItemStack[] items = ItemSerializer.fromBase64(data);
-
-                            // Auto-save migrated data in new format
-                            if (items != null && items.length > 0) {
-                                try {
-                                    String newData = ItemSerializer.toBase64(items);
-                                    if (!newData.equals(data)) {
-                                        EnderChest.getInstance().getLogger().info(
-                                                "[Migration] Auto-saving migrated data for player " + playerUUID);
-                                        autoSaveMigratedData(playerUUID, newData);
-                                    }
-                                } catch (Exception e) {
-                                    // Ignore save errors, data is already loaded successfully
-                                }
-                            }
-
-                            return items;
-                        } catch (Exception e) {
-                            EnderChest.getInstance().getLogger().warning(
-                                    "Failed to deserialize enderchest data for player " + playerUUID + ": "
-                                            + e.getMessage());
-                            return new ItemStack[0];
+                        int size = rs.getInt("chest_size");
+                        if (data == null || data.isEmpty()) {
+                            return new ItemStack[Math.max(size, 0)];
                         }
+
+                        ItemStack[] items = ItemSerializer.fromBase64(data);
+
+                        // Auto-save migrated data in new format
+                        if (items.length > 0) {
+                            try {
+                                String newData = ItemSerializer.toBase64(items);
+                                if (!newData.equals(data)) {
+                                    EnderChest.getInstance().getLogger().info(
+                                            "[Migration] Auto-saving migrated data for player " + playerUUID);
+                                    autoSaveMigratedData(playerUUID, newData);
+                                }
+                            } catch (Exception e) {
+                                // Ignore save errors, data is already loaded successfully
+                            }
+                        }
+
+                        return items;
                     }
                 }
             } catch (Exception e) {
@@ -120,7 +116,7 @@ public class MySQLStorage implements StorageInterface {
                 if (EnderChest.getInstance().config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
                 throw new java.util.concurrent.CompletionException(e);
             }
             return null;
@@ -181,19 +177,19 @@ public class MySQLStorage implements StorageInterface {
                 ps.setInt(3, size);
                 ps.setString(4, data);
                 ps.setLong(5, System.currentTimeMillis());
-                
+
                 // For ON DUPLICATE KEY UPDATE
                 ps.setString(6, playerName);
                 ps.setInt(7, size);
                 ps.setString(8, data);
                 ps.setLong(9, System.currentTimeMillis());
-                
+
                 ps.executeUpdate();
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe(
                         "[MySQLStorage] Failed to save enderchest for " + playerName + " (" + playerUUID + "): "
                                 + e.getMessage());
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
                 throw new RuntimeException("Failed to save enderchest data", e);
             }
         }, ioExecutor);
@@ -284,7 +280,7 @@ public class MySQLStorage implements StorageInterface {
                 }
             } catch (Exception e) {
                 EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
                 throw new RuntimeException("Failed to save overflow items", e);
             }
         }, ioExecutor);
@@ -301,12 +297,7 @@ public class MySQLStorage implements StorageInterface {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         String data = rs.getString("overflow_data");
-                        try {
-                            return ItemSerializer.fromBase64(data);
-                        } catch (Exception e) {
-                            EnderChest.getInstance().getLogger().warning("Failed to load overflow items for " + playerUUID);
-                            return new ItemStack[0];
-                        }
+                        return ItemSerializer.fromBase64(data);
                     }
                 }
             } catch (Exception e) {

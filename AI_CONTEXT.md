@@ -22,18 +22,18 @@ Main entrypoint: `org.maiminhdung.customenderchest.EnderChest`
 Initialization order in `onEnable()`:
 
 1. `ConfigHandler`
-2. `DebugLogger`
-3. `LocaleManager`
-4. `SoundHandler`
-5. `DataLockManager`
-6. `StorageManager` (selects backend + initializes tables/files)
-7. `EnderChestManager` (cache/load/save/open logic)
-8. `LegacyImporter`
-9. `BackupManager` (starts auto-backup if enabled)
-10. Optional update checker
-11. Config updater/reload
+2. `ConfigUpdateManager` (skips GitHub only when local `config-version` exactly matches the running plugin; otherwise fetches once and updates only if GitHub `config-version` also exactly matches)
+3. `DebugLogger`
+4. `LocaleManager`
+5. `SoundHandler`
+6. `DataLockManager`
+7. `StorageManager` (selects backend + initializes tables/files)
+8. `EnderChestManager` (cache/load/save/open logic)
+9. `VaultHandler` + `OverflowManager`
+10. `BackupManager` (starts auto-backup if enabled)
+11. Optional `UpdateManager` Modrinth release check
 12. Listener + command registration
-13. Optional bStats metrics
+13. Optional bStats and FastStats metrics
 
 Shutdown in `onDisable()`:
 
@@ -103,6 +103,10 @@ Implementations:
 - `H2Storage` -> H2 with HikariCP
 - `MySQLStorage` -> MySQL with HikariCP
 
+MySQL Connector/J is declared through the `plugin.yml` runtime `libraries` field
+instead of being shaded into the plugin JAR. Paper downloads it and its transitive
+dependencies on first startup, so a fresh installation needs network access.
+
 ### Storage Migration
 
 - Handled by `MigrationManager` and `AbstractMigrator` (Strategy pattern).
@@ -132,17 +136,19 @@ Security hardening present:
 
 ## 6) Commands and permissions
 
-Main command: `/customenderchest` (aliases: `cec`, `ec`, `customec`)
+The internal plugin command is `customenderchest`, but runtime labels are configurable through `commands.main` and `commands.aliases` (defaults: `/cec`, `/ec`, `/customenderchest`, `/customec`). `CommandRegistrationManager` unregisters/re-registers them transactionally and refreshes online player command trees.
 
 Implemented subcommands:
 
-- `/cec` or `/cec open` -> open own chest
-- `/cec open <player>` -> admin view/edit target chest
-- `/cec reload`
-- `/cec import vanilla`
-- `/cec delete <player>`
-- `/cec migrate <source> <target>` (structural data migration between storage types)
-- `/cec stats [validate]` (shows storage numbers or validates corrupted records)
+Using `<main>` for the configured primary label:
+
+- `/<main>` or `/<main> open` -> open own chest
+- `/<main> open <player>` -> admin view/edit target chest
+- `/<main> reload`
+- `/<main> import vanilla`
+- `/<main> delete <player>`
+- `/<main> migrate <source> <target>` (structural data migration between storage types)
+- `/<main> stats [validate]` (shows storage numbers or validates corrupted records)
 
 Key permissions from `plugin.yml`:
 
@@ -167,6 +173,7 @@ High-impact config keys:
 - `storage.auto-save-interval-seconds`
 - `backup.*`
 - `general.locale`, `general.debug`, `general.bstats-metrics`, `general.update-checker`
+- `commands.main`, `commands.aliases`
 - `enderchest-options.disable-enderchest-click`
 - `enderchest-options.disable-plugin-on-endechest-block`
 - `default-player.enabled`, `default-player.size`, `default-player.allow-command`
@@ -174,6 +181,8 @@ High-impact config keys:
 - `sounds.*`
 
 Text rendering uses MiniMessage via `Text.parse(...)` with legacy serialization compatibility.
+
+The configured `/<main> reload` command runs on the global scheduler, reloads `config.yml`, reads the selected `lang_<locale>.yml` directly from disk, and reapplies command labels/aliases. `LocaleManager` and `CommandRegistrationManager` are transactional: invalid YAML or command conflicts keep the previous value active and make the command report failure.
 
 ## 8) Key classes quick map
 
@@ -186,7 +195,8 @@ Text rendering uses MiniMessage via `Text.parse(...)` with legacy serialization 
 - `H2Storage`, `MySQLStorage`, `YmlStorage`: persistence implementations.
 - `LegacyImporter`: vanilla chest import flows.
 - `BackupManager`: archive backups + retention cleanup.
-- `LocaleManager`: language file management and message components.
+- `LocaleManager`: transactional language file management and message components.
+- `CommandRegistrationManager`: validates and hot-reloads the primary command and aliases.
 - `DataLockManager`: per-player operation lock.
 - `ConvertAllCommand`: batch convert old serialized data.
 

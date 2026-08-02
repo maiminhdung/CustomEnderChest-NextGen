@@ -1,7 +1,11 @@
 /bin/
 .idea
-.agents
+/.agents/
 .idea
 /.vscode/
 .settings
 /graphify-out/
+/.claude/
+/.codex/
+/docs/
+/tests/

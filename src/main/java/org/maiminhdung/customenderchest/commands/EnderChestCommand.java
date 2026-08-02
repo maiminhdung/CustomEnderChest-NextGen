@@ -13,10 +13,12 @@ import org.maiminhdung.customenderchest.utils.EnderChestUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +32,7 @@ import java.util.stream.Collectors;
 
 /**
  * Main command handler for CustomEnderChest plugin
- * Handles all /cec subcommands including open, reload, delete, stats, etc.
+ * Handles all /<main> subcommands including open, reload, delete, stats, etc.
  */
 public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
@@ -146,7 +148,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec open [player] command
+     * Handle /<main> open [player] command
      * Opens own enderchest or another player's enderchest (admin)
      */
     private void handleOpen(CommandSender sender, String[] args) {
@@ -241,7 +243,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec reload command
+     * Handle /<main> reload command
      * Reloads plugin configuration and locale files
      */
     private void handleReload(CommandSender sender) {
@@ -249,17 +251,30 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
             return;
         }
-        plugin.config().reload();
-        plugin.getLocaleManager().loadLocale();
-        plugin.getDebugLogger().reload();
-        if (plugin.getOverflowManager() != null) {
-            plugin.getOverflowManager().reloadConfig();
-        }
-        sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.reload-success"));
+        Scheduler.runTask(() -> {
+            boolean reloaded = plugin.reloadRuntimeConfiguration();
+            Runnable feedback = () -> {
+                if (reloaded) {
+                    sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.reload-success"));
+                } else {
+                    sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent(
+                            "messages.reload-failed",
+                            "<red>Reload partially failed. Previous values remain active for failed sections; check the console.</red>"));
+                }
+            };
+
+            if (sender instanceof Entity entity) {
+                Scheduler.runEntityTask(entity, feedback);
+            } else if (sender instanceof BlockCommandSender blockSender) {
+                Scheduler.runLocationTask(blockSender.getBlock().getLocation(), feedback);
+            } else {
+                feedback.run();
+            }
+        });
     }
 
     /**
-     * Handle /cec import vanilla command
+     * Handle /<main> import vanilla command
      * Bulk imports vanilla enderchest data for all players (online + offline)
      */
     private void handleImport(CommandSender sender, String[] args, String label) {
@@ -283,7 +298,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec delete <player> command
+     * Handle /<main> delete <player> command
      * Deletes a player's enderchest data completely
      */
     private void handleDelete(CommandSender sender, String[] args, String label) {
@@ -367,9 +382,9 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec stats [validate|help]
-     * - /cec stats: show storage summary
-     * - /cec stats validate: scan stored player entries and report corrupted records
+     * Handle /<main> stats [validate|help]
+     * - /<main> stats: show storage summary
+     * - /<main> stats validate: scan stored player entries and report corrupted records
      */
     private void handleStats(CommandSender sender, String[] args) {
         if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
@@ -378,9 +393,10 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("help")) {
+            String primaryCommand = plugin.getPrimaryCommand();
             sender.sendMessage("§e[CustomEnderChest] Stats commands:");
-            sender.sendMessage("§7/cec stats §f- Show storage statistics summary");
-            sender.sendMessage("§7/cec stats validate §f- Validate stored player data");
+            sender.sendMessage("§7" + primaryCommand + " stats §f- Show storage statistics summary");
+            sender.sendMessage("§7" + primaryCommand + " stats validate §f- Validate stored player data");
             return;
         }
 
@@ -453,7 +469,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec migrate command
+     * Handle /<main> migrate command
      */
     private void handleMigrate(CommandSender sender, String[] args, String label) {
         if (!hasSenderPermission(sender, "CustomEnderChest.admin")) {
@@ -476,7 +492,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handle /cec overflow [player] command
+     * Handle /<main> overflow [player] command
      * Opens own overflow GUI or another player's overflow (admin)
      */
     private void handleOverflow(CommandSender sender, String[] args) {
@@ -485,7 +501,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // /cec overflow - open own overflow
+        // /<main> overflow - open own overflow
         if (args.length == 1) {
             if (!p.isOp() && !p.hasPermission("CustomEnderChest.command.overflow")) {
                 p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
@@ -499,7 +515,7 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // /cec overflow <player> - admin view of another player's overflow
+        // /<main> overflow <player> - admin view of another player's overflow
         if (args.length >= 2) {
             if (!p.isOp() && !p.hasPermission("CustomEnderChest.command.overflow.other")) {
                 p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));

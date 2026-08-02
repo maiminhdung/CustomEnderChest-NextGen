@@ -23,10 +23,25 @@ Join support discord: https://discord.gg/sGZ2QSMDEg
     * **MySQL:** For multi-server network synchronization.
     * **H2:** A fast, file-based database for high-performance single-server setups.
     * **YML:** Simple, human-readable files for each player, perfect for small servers.
-* **🎨 Highly Configurable:** Customize all messages, inventory titles, and sounds using the powerful MiniMessage format and a multi-locale language system (`lang/` folder).
+* **🎨 Highly Configurable:** Customize messages, inventory titles, sounds, and the main command/aliases. Language files use MiniMessage and can be reloaded at runtime.
 * **📦 Permission-Based Sizes:** Grant players different Ender Chest sizes (from 1 to 6 rows) using simple and intuitive permission nodes.
 * **🔧 Modern Dependencies:** Uses HikariCP for efficient database connection pooling and is built on the modern Paper API for stability and future-proofing.
 * **🔄 Legacy Data Importer:** Includes a command to easily import player data from older, file-based versions of the plugin.
+
+## Custom command
+
+Configure the primary command and aliases in `config.yml`:
+
+```yaml
+commands:
+  main: "cec"
+  aliases:
+    - "ec"
+    - "customenderchest"
+    - "customec"
+```
+
+Run the currently active command with `reload` to apply changes immediately. For example, `/cec reload`; if the primary command is changed to `enderstorage`, use `/enderstorage reload` afterward.
 
 ## Building
 
@@ -34,6 +49,9 @@ This project is built using Gradle.
 
 * Java 21 or higher is required.
 * Run `./gradlew build` to build the plugin. The final JAR will be located in `build/libs/`.
+* On first startup, Paper downloads MySQL Connector/J and its transitive dependencies through the
+  `libraries` entry in `plugin.yml`. A fresh installation therefore needs network access; Paper
+  caches the downloaded libraries for later startups.
 
 ## License
 

@@ -7,7 +7,8 @@ messages:
   no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
   no-permission-block-open: "<red>Bạn không có quyền để mở rương Ender.</red>"
   players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
-  reload-success: "<green>Đã tải lại tệp cấu hình và ngôn ngữ.</green>"
+  reload-success: "<green>Đã tải lại cấu hình, ngôn ngữ và command.</green>"
+  reload-failed: "<red>Một phần reload thất bại. Giá trị cũ vẫn được dùng cho phần bị lỗi; hãy kiểm tra console.</red>"
   data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
   data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
   save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
@@ -21,7 +22,7 @@ messages:
 
   # Overflow messages
   overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."
-  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender hoặc /ec overflow"
+  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender hoặc dùng <command>."
   overflow-items-restored: "<green>✓ Đã khôi phục <count> vật phẩm từ kho dự phòng!"
   overflow-login-warning: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng. Dùng <command> để nhận."
   overflow-login-warning-expiring: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng sẽ hết hạn sau <days> ngày! Dùng <command> để nhận."

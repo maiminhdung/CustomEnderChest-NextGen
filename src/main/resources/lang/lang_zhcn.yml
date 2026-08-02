@@ -4,7 +4,8 @@ messages:
   no-permission: "<red>你没有权限使用这个。</red>"
   no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>该命令只能由玩家执行。</red>"
-  reload-success: "<green>配置与语言文件重载完毕。</green>"
+  reload-success: "<green>配置、语言和命令设置已重载。</green>"
+  reload-failed: "<red>部分重载失败。失败部分仍使用旧值；请检查控制台。</red>"
   data-still-loading: "<yellow>数据仍在载入，请稍候...</yellow>"
   data-busy: "<red>玩家数据库繁忙，请稍后再试。</red>"
   save-error: "<red>保存数据时出错，请检查控制台。</red>"
@@ -16,7 +17,7 @@ messages:
   data-migrated: "<green>Your enderchest data has been migrated to your new account."
   # 溢出相关消息
   overflow-items-saved: "<yellow>⚠ 部分当前权限不能存取的物品已转移到溢出仓库。"
-  overflow-will-restore: "<gray>升级末影箱后会自动回到普通仓库中。or /ec overflow "
+  overflow-will-restore: "<gray>升级末影箱后会自动恢复，或使用 <command>。"
   overflow-items-restored: "<green>✓ 成功从溢出仓库中取回了 <count> 个物品！"
   overflow-login-warning: "<yellow>⚠ 你有 <count> 个物品在溢出仓库中。使用 <command> 来领取。"
   overflow-login-warning-expiring: "<yellow>⚠ 你有 <count> 个溢出物品将在 <days> 天后过期！使用 <command> 来领取。"

@@ -5,7 +5,8 @@ messages:
   no-permission: "<red>You don't have permission for that.</red>"
   no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>This command can only be run by a player.</red>"
-  reload-success: "<green>Configuration and language files have been reloaded.</green>"
+  reload-success: "<green>Configuration, language, and command settings have been reloaded.</green>"
+  reload-failed: "<red>Reload partially failed. Previous values remain active for failed sections; check the console.</red>"
   data-still-loading: "<yellow>Your data is still loading, please wait a moment...</yellow>"
   data-busy: "<red>Player data is busy. Please try again shortly.</red>"
   save-error: "<red>An error occurred while saving data. Please check the console.</red>"
@@ -19,7 +20,7 @@ messages:
 
   # Overflow messages
   overflow-items-saved: "<yellow>⚠ Some items beyond your permission have been saved to overflow storage."
-  overflow-will-restore: "<gray>They will be automatically restored when you upgrade your Ender Chest or using /ec overflow."
+  overflow-will-restore: "<gray>They will be automatically restored when you upgrade your Ender Chest or use <command>."
   overflow-items-restored: "<green>✓ Restored <count> items from overflow storage!"
   overflow-login-warning: "<yellow>⚠ You have <count> item(s) in overflow storage. Use <command> to claim them."
   overflow-login-warning-expiring: "<yellow>⚠ You have <count> item(s) in overflow that will expire in <days> day(s)! Use <command> to claim them."

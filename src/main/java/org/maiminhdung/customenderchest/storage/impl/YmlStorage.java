@@ -1,7 +1,5 @@
 package org.maiminhdung.customenderchest.storage.impl;
 
-import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
-
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.data.ItemSerializer;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -45,14 +43,18 @@ public class YmlStorage implements StorageInterface {
             try {
                 config.load(playerFile);
             } catch (Exception e) {
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
                 throw new java.util.concurrent.CompletionException("Failed to load yml", e);
             }
 
             // Take size from config
+            int size = config.getInt("enderchest-size", 0);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("enderchest-inventory");
 
+            if (serializedItems == null) {
+                return new ItemStack[Math.max(size, 0)];
+            }
             return ItemSerializer.deserialize(serializedItems);
         }, ioExecutor);
     }
@@ -71,7 +73,7 @@ public class YmlStorage implements StorageInterface {
                     config.save(playerFile);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    ERROR_TRACKER.trackError(e);
+                    EnderChest.trackError(e);
                 }
             }
         }, ioExecutor);
@@ -167,7 +169,7 @@ public class YmlStorage implements StorageInterface {
                 } catch (Exception e) {
                     EnderChest.getInstance().getLogger().severe("Failed to save overflow items for " + playerUUID);
                     e.printStackTrace();
-                    ERROR_TRACKER.trackError(e);
+                    EnderChest.trackError(e);
                 }
             }
         }, ioExecutor);
@@ -185,7 +187,7 @@ public class YmlStorage implements StorageInterface {
             } catch (Exception e) {
                 throw new java.util.concurrent.CompletionException(e);
             }
-            
+
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> serializedItems = (List<Map<String, Object>>) config.getList("overflow-items");
 
@@ -207,7 +209,7 @@ public class YmlStorage implements StorageInterface {
                 config.save(playerFile);
             } catch (Exception e) {
                 e.printStackTrace();
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
             }
         }, ioExecutor);
     }
@@ -308,7 +310,7 @@ public class YmlStorage implements StorageInterface {
                     }
                 } catch (Exception e) {
                     EnderChest.getInstance().getLogger().warning("[YmlStorage] Failed to read file " + file.getName() + ": " + e.getMessage());
-                    ERROR_TRACKER.trackError(e);
+                    EnderChest.trackError(e);
                 }
             }
 

@@ -30,6 +30,11 @@ public final class ItemSerializer {
 
     private static final Logger LOGGER = Logger.getLogger(ItemSerializer.class.getName());
 
+    private static String currentPrimaryCommand() {
+        EnderChest plugin = EnderChest.getInstance();
+        return plugin != null ? plugin.getPrimaryCommand() : "/customenderchest";
+    }
+
     /**
      * Serialize ItemStack array to Base64 string using Paper's data component API
      * This method converts ItemStack components to raw bytes, which Paper's
@@ -89,8 +94,7 @@ public final class ItemSerializer {
         try {
             bytes = Base64.getDecoder().decode(data);
         } catch (IllegalArgumentException e) {
-            LOGGER.log(Level.WARNING, "Invalid Base64 data, returning empty inventory");
-            return new ItemStack[0];
+            throw new IOException("Invalid Base64 data", e);
         }
 
         // Try to detect format by reading first 4 bytes (array length)
@@ -116,8 +120,7 @@ public final class ItemSerializer {
                 return deserializeLegacyFormat(bytes);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to detect data format", e);
-            return new ItemStack[0];
+            throw new IOException("Failed to detect serialized inventory format", e);
         }
     }
 
@@ -230,7 +233,7 @@ public final class ItemSerializer {
             LOGGER.log(Level.SEVERE, "TO FIX THIS ISSUE:");
             LOGGER.log(Level.SEVERE, "1. Downgrade your server back to <1.21.4");
             LOGGER.log(Level.SEVERE, "2. Install this plugin on <1.21.4 server");
-            LOGGER.log(Level.SEVERE, "3. Run command: /cec migrate yml mysql");
+            LOGGER.log(Level.SEVERE, "3. Run command: " + currentPrimaryCommand() + " migrate yml mysql");
             LOGGER.log(Level.SEVERE, "4. Wait for migration to complete");
             LOGGER.log(Level.SEVERE, "5. Then upgrade server to 1.21.5+");
             LOGGER.log(Level.SEVERE, "");
@@ -271,7 +274,8 @@ public final class ItemSerializer {
                         op.sendMessage(Component.empty());
                         op.sendMessage(prefix.append(Text.parse("<bold><yellow>TO FIX:")));
                         op.sendMessage(prefix.append(Text.parse("<yellow>1. Downgrade server to 1.21.4")));
-                        op.sendMessage(prefix.append(Text.parse("<yellow>2. Run: /cec migrate yml mysql")));
+                        op.sendMessage(prefix.append(Text.parse("<yellow>2. Run: "
+                                + plugin.getPrimaryCommand() + " migrate yml mysql")));
                         op.sendMessage(prefix.append(Text.parse("<yellow>3. Then upgrade to 1.21.5+")));
                     }));
         } catch (Exception ignored) {

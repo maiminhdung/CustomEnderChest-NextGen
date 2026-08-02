@@ -5,7 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.maiminhdung.customenderchest.EnderChest;
-import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
+
 import org.maiminhdung.customenderchest.Scheduler;
 import org.maiminhdung.customenderchest.locale.LocaleManager;
 import org.maiminhdung.customenderchest.storage.StorageInterface;
@@ -53,7 +53,7 @@ public class OverflowManager {
     }
 
     /**
-     * Reload config values. Call after /cec reload.
+     * Reload config values. Call after the configured reload command.
      */
     public void reloadConfig() {
         this.expirationEnabled = plugin.config().getBoolean("overflow.expiration.enabled", false);
@@ -127,7 +127,8 @@ public class OverflowManager {
                         // Expired! First load to know the count, then clear
                         storage.loadOverflowItems(info.playerUUID).thenAccept(overflowItems -> {
                             int count = (overflowItems != null) ? overflowItems.length : 0;
-                            storage.clearOverflowItems(info.playerUUID).thenRun(() -> {
+                            plugin.getEnderChestManager().queueStorageOperation(info.playerUUID,
+                                    () -> storage.clearOverflowItems(info.playerUUID)).thenRun(() -> {
                                 plugin.getLogger().info("[Overflow] Expired overflow for " + info.playerName
                                         + " (" + info.playerUUID + ") - " + count + " items removed.");
 
@@ -144,12 +145,12 @@ public class OverflowManager {
                                 dataLockManager.unlock(info.playerUUID);
                             }).exceptionally(ex -> {
                                 dataLockManager.unlock(info.playerUUID);
-                                ERROR_TRACKER.trackError(ex);
+                                EnderChest.trackError(ex);
                                 return null;
                             });
                         }).exceptionally(ex -> {
                             dataLockManager.unlock(info.playerUUID);
-                            ERROR_TRACKER.trackError(ex);
+                            EnderChest.trackError(ex);
                             return null;
                         });
                     } else {
@@ -158,13 +159,13 @@ public class OverflowManager {
                     }
                 }).exceptionally(ex -> {
                     dataLockManager.unlock(info.playerUUID);
-                    ERROR_TRACKER.trackError(ex);
+                    EnderChest.trackError(ex);
                     return null;
                 });
             }
         }).exceptionally(ex -> {
             plugin.getLogger().log(Level.WARNING, "[Overflow] Error during expiration cleanup", ex);
-            ERROR_TRACKER.trackError(ex);
+            EnderChest.trackError(ex);
             return null;
         });
     }
@@ -217,13 +218,13 @@ public class OverflowManager {
                                             "messages.overflow-login-warning-expiring",
                                             Placeholder.unparsed("count", String.valueOf(count)),
                                             Placeholder.unparsed("days", String.valueOf(daysLeft)),
-                                            Placeholder.unparsed("command", "/cec open")));
+                                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
                                 } else {
                                     // No timestamp, just generic warning
                                     player.sendMessage(locale.getPrefixedComponent(
                                             "messages.overflow-login-warning",
                                             Placeholder.unparsed("count", String.valueOf(count)),
-                                            Placeholder.unparsed("command", "/cec open")));
+                                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
                                 }
                                 warnedThisSession.add(player.getUniqueId());
                             });
@@ -237,7 +238,7 @@ public class OverflowManager {
                             player.sendMessage(locale.getPrefixedComponent(
                                     "messages.overflow-login-warning",
                                     Placeholder.unparsed("count", String.valueOf(count)),
-                                    Placeholder.unparsed("command", "/cec open")));
+                                    Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
                             warnedThisSession.add(player.getUniqueId());
                         });
                     }

@@ -1,7 +1,6 @@
 package org.maiminhdung.customenderchest.storage;
 
-import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
-
+import com.mysql.cj.jdbc.MysqlDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
@@ -11,6 +10,7 @@ import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.storage.impl.H2Storage;
 import org.maiminhdung.customenderchest.storage.impl.MySQLStorage;
 import org.maiminhdung.customenderchest.storage.impl.YmlStorage;
+import org.h2.Driver;
 
 import java.io.File;
 import java.sql.Connection;
@@ -28,7 +28,7 @@ public class StorageManager {
 
     public StorageManager(EnderChest plugin) {
         this.plugin = plugin;
-        
+
         // Bounded executor pool for IO operations
         int threadPoolSize = plugin.config().getInt("storage.pool-settings.max-pool-size", 10);
         this.ioExecutor = Executors.newFixedThreadPool(threadPoolSize, runnable -> {
@@ -47,9 +47,7 @@ public class StorageManager {
                 if (connectMySQL()) {
                     this.storageImplementation = new MySQLStorage(this);
                 } else {
-                    plugin.getLogger()
-                            .severe("MySQL connection failed! Falling back to YML storage as a safe default.");
-                    this.storageImplementation = new YmlStorage(this);
+                    throw new IllegalStateException("MySQL connection failed; refusing to fall back to another storage backend.");
                 }
                 break;
             case "h2":
@@ -57,8 +55,7 @@ public class StorageManager {
                 if (connectH2()) {
                     this.storageImplementation = new H2Storage(this);
                 } else {
-                    plugin.getLogger().severe("H2 connection failed! Falling back to YML storage as a safe default.");
-                    this.storageImplementation = new YmlStorage(this);
+                    throw new IllegalStateException("H2 connection failed; refusing to fall back to another storage backend.");
                 }
                 break;
             case "yml":
@@ -127,7 +124,7 @@ public class StorageManager {
         try {
             HikariConfig config = new HikariConfig();
             config.setPoolName("CEC-MySQL-Pool");
-            config.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
+            config.setDataSourceClassName(MysqlDataSource.class.getName());
             config.addDataSourceProperty("serverName", plugin.config().getString("storage.mysql.host"));
             config.addDataSourceProperty("portNumber", plugin.config().getInt("storage.mysql.port", 3306));
             config.addDataSourceProperty("databaseName", plugin.config().getString("storage.mysql.database"));
@@ -183,7 +180,7 @@ public class StorageManager {
 
             plugin.getLogger().severe("Config: host=" + host + ", port=" + port + ", database=" + database);
             plugin.getLogger().severe("========================================================");
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
             return false;
         }
     }
@@ -198,12 +195,17 @@ public class StorageManager {
             config.setPoolName("CEC-H2-Pool");
             File dbFile = new File(plugin.getDataFolder(), "data/enderchests");
             config.setJdbcUrl(
-                    "jdbc:h2:" + dbFile.getAbsolutePath() + ";MODE=MySQL;AUTO_RECONNECT=TRUE;LOCK_TIMEOUT=10000");
-            config.setDriverClassName("org.maiminhdung.customenderchest.lib.h2.Driver");
+                    "jdbc:h2:" + dbFile.getAbsolutePath()
+                            + ";MODE=MySQL;LOCK_TIMEOUT=10000;WRITE_DELAY=500;DB_CLOSE_ON_EXIT=FALSE");
+            config.setDriverClassName(Driver.class.getName());
 
-            // Pool size settings
-            config.setMaximumPoolSize(plugin.config().getInt("storage.pool-settings.max-pool-size", 10));
-            config.setMinimumIdle(2);
+            // Respect the configured pool size. H2 serializes writes internally, but
+            // additional connections still allow concurrent reads and queued joins.
+            int configuredPoolSize = plugin.config().getInt("storage.pool-settings.max-pool-size", 10);
+            int maximumPoolSize = Math.max(2, configuredPoolSize);
+            int configuredMinIdle = plugin.config().getInt("storage.pool-settings.min-idle", 1);
+            config.setMaximumPoolSize(maximumPoolSize);
+            config.setMinimumIdle(Math.max(1, Math.min(configuredMinIdle, maximumPoolSize)));
 
             // Timeout settings to prevent hanging
             config.setConnectionTimeout(10000); // 10 seconds to get connection
@@ -223,16 +225,11 @@ public class StorageManager {
                 plugin.getLogger().warning("========================================================");
                 plugin.getLogger().warning("H2 DATABASE FILE IS LOCKED!");
                 plugin.getLogger().warning("This usually happens after a server crash or /reload.");
-                plugin.getLogger().warning("Attempting to remove stale lock file...");
                 plugin.getLogger().warning("========================================================");
 
-                if (cleanupStaleLockFile()) {
-                    plugin.getLogger().info("Stale lock file removed. Retrying H2 connection...");
-                    return connectH2Internal(false);
-                } else {
-                    plugin.getLogger().severe("Could not remove lock file. The database may be in use by another process.");
-                    plugin.getLogger().severe("If no other server is running, manually delete: plugins/CustomEnderChest/data/enderchests.mv.db.lock.db");
-                }
+                plugin.getLogger().severe("The H2 lock file may indicate another running process or an unclean shutdown.");
+                plugin.getLogger().severe("Do NOT auto-delete it while the database may still be active.");
+                plugin.getLogger().severe("Stop all server instances first, then inspect: plugins/CustomEnderChest/data/enderchests.lock.db");
             }
 
             // Check if the root cause is a corrupted H2 database file
@@ -253,7 +250,7 @@ public class StorageManager {
             }
 
             plugin.getLogger().severe("H2 connection error: " + e.getMessage());
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
             return false;
         }
     }
@@ -333,62 +330,41 @@ public class StorageManager {
             return true;
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to backup corrupted H2 file: " + e.getMessage());
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
             return false;
         }
     }
 
-    /**
-     * Remove the stale H2 lock file (.lock.db) that may remain after a server crash.
-     * H2 creates this file to prevent concurrent access. If the server crashes,
-     * the lock file is not properly cleaned up, blocking future connections.
-     *
-     * @return true if the lock file was removed or didn't exist
-     */
-    private boolean cleanupStaleLockFile() {
-        File dataFolder = new File(plugin.getDataFolder(), "data");
-        File lockFile = new File(dataFolder, "enderchests.mv.db.lock.db");
 
-        if (!lockFile.exists()) {
-            // No lock file found, the lock might be OS-level file lock
-            plugin.getLogger().warning("No .lock.db file found. The file may be locked by another running server instance.");
-            return false;
-        }
-
-        try {
-            if (lockFile.delete()) {
-                plugin.getLogger().info("Successfully removed stale lock file: " + lockFile.getName());
-                return true;
-            } else {
-                plugin.getLogger().severe("Could not delete lock file: " + lockFile.getAbsolutePath());
-                return false;
-            }
-        } catch (Exception e) {
-            plugin.getLogger().severe("Failed to remove lock file: " + e.getMessage());
-            ERROR_TRACKER.trackError(e);
-            return false;
-        }
-    }
 
     /**
      * Close connection when turn off.
      */
     public void close() {
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-            plugin.getLogger().info("Database connection pool closed.");
-        }
         if (ioExecutor != null && !ioExecutor.isShutdown()) {
             ioExecutor.shutdown();
             try {
-                if (!ioExecutor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
-                    ioExecutor.shutdownNow();
+                if (!ioExecutor.awaitTermination(15, java.util.concurrent.TimeUnit.SECONDS)) {
+                    plugin.getLogger().warning("Database thread pool did not stop within 15 seconds. Pending writes may be abandoned.");
                 }
             } catch (InterruptedException e) {
-                ioExecutor.shutdownNow();
                 Thread.currentThread().interrupt();
+                plugin.getLogger().warning("Interrupted while waiting for database thread pool shutdown.");
             }
             plugin.getLogger().info("Database thread pool shut down.");
+        }
+        if (dataSource != null && !dataSource.isClosed()) {
+            try (Connection conn = dataSource.getConnection();
+                 java.sql.Statement stmt = conn.createStatement()) {
+                if (conn.getMetaData().getURL().startsWith("jdbc:h2:")) {
+                    stmt.execute("CHECKPOINT SYNC");
+                    stmt.execute("SHUTDOWN");
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to finalize database before closing pool: " + e.getMessage());
+            }
+            dataSource.close();
+            plugin.getLogger().info("Database connection pool closed.");
         }
     }
 

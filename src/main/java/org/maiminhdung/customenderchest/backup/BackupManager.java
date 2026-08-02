@@ -1,7 +1,5 @@
 package org.maiminhdung.customenderchest.backup;
 
-import static org.maiminhdung.customenderchest.EnderChest.ERROR_TRACKER;
-
 import lombok.Getter;
 import org.maiminhdung.customenderchest.EnderChest;
 import org.maiminhdung.customenderchest.Scheduler;
@@ -83,12 +81,12 @@ public class BackupManager {
                 long startTime = System.currentTimeMillis();
 
                 File backupFile = new File(backupFolder, "backup_" + timestamp + ".zip");
-                
+
                 // Ensure backup folder exists just in case it was deleted while server was running
                 if (!backupFolder.exists()) {
                     backupFolder.mkdirs();
                 }
-                
+
                 plugin.getDebugLogger().log("[Backup] Target file: " + backupFile.getAbsolutePath());
 
                 switch (storageType) {
@@ -129,7 +127,7 @@ public class BackupManager {
                 if (plugin.config().getBoolean("general.debug")) {
                     e.printStackTrace();
                 }
-                ERROR_TRACKER.trackError(e);
+                EnderChest.trackError(e);
                 return false;
             }
         });
@@ -400,7 +398,7 @@ public class BackupManager {
             if (plugin.config().getBoolean("general.debug")) {
                 e.printStackTrace();
             }
-            ERROR_TRACKER.trackError(e);
+            EnderChest.trackError(e);
         }
     }
 

@@ -1,17 +1,18 @@
 name: CustomEnderChest
 main: org.maiminhdung.customenderchest.EnderChest
-version: 2.1.2
+version: "${version}"
 author: maiminhdung, brunyman
 website: https://maiminhdung.dev/
 load: STARTUP
 api-version: 1.21
 folia-supported: true
 softdepend: [NBTAPI, Vault]
+libraries:
+  - com.mysql:mysql-connector-j:8.4.0
 commands:
   customenderchest:
     description: Main command for CustomEnderChest.
     usage: "/<command> [open|reload|import vanilla|delete|migrate|stats]"
-    aliases: [ cec, ec, customec ]
 permissions:
   CustomEnderChest.level.0:
     description: 9 slots enderchest (1 raw).
@@ -32,7 +33,7 @@ permissions:
     description: 54 slots enderchest (6 raws).
     default: false
   CustomEnderChest.command.open.self:
-    description: Allows opening your own chest with /cec open.
+    description: Allows opening your own chest with the configured command.
     default: false
   CustomEnderChest.command.open.other:
     description: Allows opening other players' chests.
@@ -44,14 +45,14 @@ permissions:
     description: Administrative access for all commands.
     default: op
   CustomEnderChest.commands:
-    description: Allows using /cec, /ec, /customec commands to open your enderchest.
+    description: Allows using the configured commands to open your enderchest.
     default: false
   CustomEnderChest.block.open:
     description: Allows opening your enderchest by right-clicking an Ender Chest block.
     default: false
   CustomEnderChest.command.overflow:
-    description: Allows viewing and claiming your overflow items via /cec overflow.
+    description: Allows viewing and claiming your overflow items via the configured command.
     default: op
   CustomEnderChest.command.overflow.other:
-    description: Allows viewing another player's overflow items via /cec overflow <player>.
+    description: Allows viewing another player's overflow items via the configured command.
     default: op

@@ -5,7 +5,8 @@ messages:
   no-permission: "<red>Je hebt daar geen toestemming voor.</red>"
   no-permission-block-open: "<red>You don't have permission to open the Ender Chest by clicking on it.</red>"
   players-only: "<red>Dit commando kan alleen door een speler worden uitgevoerd.</red>"
-  reload-success: "<green>Configuratie- en taal bestanden zijn opnieuw geladen.</green>"
+  reload-success: "<green>Configuratie-, taal- en opdrachtinstellingen zijn opnieuw geladen.</green>"
+  reload-failed: "<red>Opnieuw laden is gedeeltelijk mislukt. Vorige waarden blijven actief voor mislukte onderdelen; controleer de console.</red>"
   data-still-loading: "<yellow>Je gegevens worden nog geladen, even geduld a.u.b...</yellow>"
   data-busy: "<red>Spelerdata is bezig. Probeer het binnenkort opnieuw.</red>"
   save-error: "<red>Er is een fout opgetreden tijdens het opslaan van gegevens. Controleer de console.</red>"
@@ -19,7 +20,7 @@ messages:
 
   # Overflow berichten
   overflow-items-saved: "<yellow>⚠ Sommige items die buiten uw toestemming vallen, zijn opgeslagen in de overflow-opslag."
-  overflow-will-restore: "<gray>Ze worden automatisch hersteld wanneer je je Ender Chest upgradet."
+  overflow-will-restore: "<gray>Ze worden automatisch hersteld wanneer je je Ender Chest upgradet of <command> gebruikt."
   overflow-items-restored: "<green>✓ <count> Items uit de overflow-opslag hersteld!"
   overflow-login-warning: "<yellow>⚠ Je hebt <count> item(s) in overflow-opslag. Gebruik <command> om ze op te halen."
   overflow-login-warning-expiring: "<yellow>⚠ Je hebt <count> item(s) in overflow die over <days> dag(en) verlopen! Gebruik <command> om ze op te halen."
