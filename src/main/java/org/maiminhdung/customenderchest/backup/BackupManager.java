@@ -36,6 +36,14 @@ public class BackupManager {
     }
 
     /**
+     * Restarts the scheduled backup task using the latest config values.
+     */
+    public void reloadTasks() {
+        stopAutoBackup();
+        startAutoBackup();
+    }
+
+    /**
      * Start the automatic backup task
      */
     public void startAutoBackup() {
@@ -44,7 +52,11 @@ public class BackupManager {
             return;
         }
 
-        long intervalMinutes = plugin.config().getInt("backup.interval-minutes", 60);
+        long configuredInterval = plugin.config().getInt("backup.interval-minutes", 60);
+        long intervalMinutes = Math.max(configuredInterval, 1L);
+        if (configuredInterval < 1L) {
+            plugin.getLogger().warning("backup.interval-minutes must be at least 1. Using 1 minute.");
+        }
         long intervalTicks = intervalMinutes * 60L * 20L; // Convert minutes to ticks
 
         // Run first backup after 5 minutes, then every interval
@@ -322,8 +334,16 @@ public class BackupManager {
      */
     private void cleanupOldBackups() {
         try {
-            int maxBackups = plugin.config().getInt("backup.max-backups", 10);
-            int retentionDays = plugin.config().getInt("backup.retention-days", 7);
+            int configuredMaxBackups = plugin.config().getInt("backup.max-backups", 10);
+            int configuredRetentionDays = plugin.config().getInt("backup.retention-days", 7);
+            int maxBackups = Math.max(configuredMaxBackups, 1);
+            int retentionDays = Math.max(configuredRetentionDays, 0);
+            if (configuredMaxBackups < 1) {
+                plugin.getLogger().warning("backup.max-backups must be at least 1. Using 1.");
+            }
+            if (configuredRetentionDays < 0) {
+                plugin.getLogger().warning("backup.retention-days cannot be negative. Using 0 days.");
+            }
 
             plugin.getDebugLogger()
                     .log("[Backup] Cleanup policy - Max backups: " + maxBackups + ", Retention days: " + retentionDays);

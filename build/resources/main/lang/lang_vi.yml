@@ -1,0 +1,80 @@
+# File Ngôn ngữ Tiếng Việt cho CustomEnderChest
+
+# Prefix dùng cho tất cả messages
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
+
+messages:
+  no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
+  no-permission-block-open: "<red>Bạn không có quyền để mở rương Ender.</red>"
+  players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
+  reload-success: "<green>Đã tải lại cấu hình, ngôn ngữ và command.</green>"
+  reload-failed: "<red>Một phần reload thất bại. Giá trị cũ vẫn được dùng cho phần bị lỗi; hãy kiểm tra console.</red>"
+  data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
+  data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
+  save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
+  invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
+
+  # Migration messages
+  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5+)."
+  migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
+  migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
+  data-migrated: "<green>Dữ liệu rương ender của bạn đã được chuyển sang tài khoản mới."
+
+  # Overflow messages
+  overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."
+  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender hoặc dùng <command>."
+  overflow-items-restored: "<green>✓ Đã khôi phục <count> vật phẩm từ kho dự phòng!"
+  overflow-login-warning: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng. Dùng <command> để nhận."
+  overflow-login-warning-expiring: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng sẽ hết hạn sau <days> ngày! Dùng <command> để nhận."
+  overflow-expired: "<red>Vật phẩm dự phòng (<count> vật phẩm) đã hết hạn và bị xóa."
+  overflow-fee-charged: "<yellow>Đã trừ <amount> khi nhận <count> vật phẩm dự phòng."
+  overflow-fee-insufficient: "<red>Bạn cần ít nhất <amount> để nhận vật phẩm dự phòng. Số dư: <balance>"
+  overflow-fee-no-vault: "<red>Không tìm thấy plugin kinh tế (Vault). Phí nhận vật phẩm đã tắt."
+
+command:
+  usage: "<red>Sử dụng: <gray>/<label> <usage>"
+  player-not-found: "<red>Không tìm thấy người chơi '<player>' hoặc họ chưa có dữ liệu."
+  delete-usage: "<red>Sử dụng: <gray>/<label> delete <tên_người_chơi>"
+  delete-success: "<green>Đã xóa thành công dữ liệu Rương Ender của <white><player></white>."
+  loading-chest: "<yellow>Đang tải Rương Ender của <white><player></white>..."
+  import-usage: "<red>Sử dụng: <gray>/<label> import <vanilla>"
+  import-invalid-type: "<red>Loại import không hợp lệ. Sử dụng: <gray>vanilla"
+  migrate-usage: "<yellow>Sử dụng: <gray>/<label> migrate <yml|h2|mysql> <yml|h2|mysql>"
+  migrate-example: "<gray>Ví dụ: /<label> migrate yml mysql"
+  migrate-running: "<red>Một tiến trình migrate khác đang diễn ra. Vui lòng đợi!"
+  migrate-same-type: "<red>Định dạng nguồn và đích không được giống nhau."
+  migrate-init: "<yellow>Đang khởi tạo kết nối database..."
+  migrate-conn-source-err: "<red>Lỗi kết nối định dạng nguồn. Migrate bị huỷ."
+  migrate-conn-target-err: "<red>Lỗi kết nối định dạng đích. Migrate bị huỷ."
+  migrate-start: "<yellow>Bắt đầu chuyển dữ liệu từ <source> sang <target>..."
+  migrate-no-data: "<red>Không tìm thấy dữ liệu nào để chuyển đổi."
+  migrate-success: "<green>Chuyển dữ liệu hoàn tất! Thành công: <success>/<total>, Lỗi: <failed>"
+  migrate-note: "<yellow>⚠ Lưu ý: <white>Sau khi chuyển đổi dữ liệu và muốn sử dụng dữ liệu đó thì hãy tắt máy chủ và chỉnh thông tin trong file config.yml rồi mở máy chủ để sử dụng."
+  migrate-error-unknown: "<red>Đã xảy ra lỗi không xác định lúc chuyển dữ liệu. Xem Console để biết chi tiết."
+  migrate-in-progress: "<red>Hệ thống đang bảo trì dữ liệu (migrate), không thể mở rương ngay lúc này!"
+  overflow-title: "<dark_purple>Rương dự phòng của <player>"
+  overflow-admin-title: "<dark_red>Admin Xem: <white><player> <dark_red>Dự phòng"
+  overflow-empty: "<green>Bạn không có vật phẩm nào trong kho dự phòng."
+  overflow-admin-empty: "<green><player> không có vật phẩm trong kho dự phòng."
+  overflow-no-enderchest: "<red>Bạn cần Rương Ender để nhận vật phẩm dự phòng."
+  overflow-claimed: "<green>✓ Đã nhận <count> vật phẩm từ kho dự phòng!"
+  overflow-enderchest-full: "<yellow>Hành trang của bạn đã đầy. Vật phẩm còn lại vẫn ở kho dự phòng."
+  overflow-claim-failed: "<red>Nhận vật phẩm dự phòng thất bại. Vui lòng thử lại."
+
+titles:
+  enderchest: "<level> - <light_purple>Rương của <player>"
+  admin_view: "<dark_red>Admin Xem: <white><player>"
+
+# Tên cấp độ được dùng trong biến <level>
+levels:
+  '0': "&fCấp 1" # 1 hàng (9 ô)
+  '1': "&aCấp 2" # 2 hàng (18 ô)
+  '2': "&bCấp 3" # 3 hàng (27 ô)
+  '3': "&eCấp 4" # 4 hàng (36 ô)
+  '4': "&6Cấp 5" # 5 hàng (45 ô)
+  '5': "&d&lCấp 6" # 6 hàng (54 ô)
+
+import:
+  started: "<green>Bắt đầu chuyển dữ liệu vanilla sang plugin cho tất cả người chơi trực tuyến..."
+  complete: "<green>Chuyển hoàn tất! Đã chuyển cho <white><imported></white> người chơi, bỏ qua <white><skipped></white>."
+  nbtapi-missing: "<red>Cần cài đặt plugin NBTAPI để sử dụng lệnh này. Vui lòng cài đặt NBTAPI trên server."

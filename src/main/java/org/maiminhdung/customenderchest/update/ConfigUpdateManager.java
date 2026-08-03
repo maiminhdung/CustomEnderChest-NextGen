@@ -110,6 +110,7 @@ public final class ConfigUpdateManager {
         }
 
         YamlConfiguration userConfig = loadConfigFile();
+        migrateLegacyValues(userConfig, template);
         preserveUserValues(userConfig, template);
         template.set("config-version", pluginVersion);
         saveAtomically(template, oldVersion, pluginVersion);
@@ -144,10 +145,26 @@ public final class ConfigUpdateManager {
         return configuration;
     }
 
+    private void migrateLegacyValues(YamlConfiguration userConfig, YamlConfiguration template) {
+        String newPath = "enderchest-options.block-interaction-mode";
+        if (userConfig.contains(newPath)) {
+            return;
+        }
+
+        boolean vanillaMode = userConfig.getBoolean("enderchest-options.vanilla-enderchest-block", false)
+                || userConfig.getBoolean("enderchest-options.disable-plugin-on-endechest-block", false);
+        boolean unrestrictedCustomMode = userConfig.getBoolean(
+                "enderchest-options.disable-enderchest-click", false);
+
+        template.set(newPath, vanillaMode ? "vanilla" : unrestrictedCustomMode ? "custom" : "permission");
+    }
+
     private void preserveUserValues(YamlConfiguration userConfig, YamlConfiguration template) {
         Set<String> keys = userConfig.getKeys(true);
         for (String path : keys) {
-            if (path.equals("config-version") || userConfig.isConfigurationSection(path)) {
+            if (path.equals("config-version")
+                    || userConfig.isConfigurationSection(path)
+                    || isRemovedSetting(path)) {
                 continue;
             }
 
@@ -163,6 +180,14 @@ public final class ConfigUpdateManager {
                 template.setInlineComments(path, userConfig.getInlineComments(path));
             }
         }
+    }
+
+    private boolean isRemovedSetting(String path) {
+        return path.startsWith("storage.auto-cleanup.")
+                || path.startsWith("sounds.reload.")
+                || path.equals("enderchest-options.disable-enderchest-click")
+                || path.equals("enderchest-options.vanilla-enderchest-block")
+                || path.equals("enderchest-options.disable-plugin-on-endechest-block");
     }
 
     private void saveAtomically(YamlConfiguration configuration, String oldVersion, String newVersion)

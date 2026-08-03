@@ -272,7 +272,10 @@ public final class EnderChest extends JavaPlugin {
 			debugLogger.reload();
 		}
 		if (overflowManager != null) {
-			overflowManager.reloadConfig();
+			overflowManager.reloadTasks();
+		}
+		if (backupManager != null) {
+			backupManager.reloadTasks();
 		}
 		return localeReloaded && commandsReloaded;
 	}

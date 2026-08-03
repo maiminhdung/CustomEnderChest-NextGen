@@ -96,7 +96,7 @@ If you modify inventory or player state, prefer entity-thread scheduling on Foli
 
 ## 5) Storage layer
 
-Interface: `StorageInterface`  
+Interface: `StorageInterface`
 Implementations:
 
 - `YmlStorage` -> `plugins/CustomEnderChest/playerdata/<uuid>.yml`
@@ -163,7 +163,7 @@ Key permissions from `plugin.yml`:
 
 ## 7) Config and locale
 
-Main config: `src/main/resources/config.yml`  
+Main config: `src/main/resources/config.yml`
 Language files: `src/main/resources/lang/lang_{en,vi,nl,zhcn}.yml`
 
 High-impact config keys:
@@ -174,15 +174,15 @@ High-impact config keys:
 - `backup.*`
 - `general.locale`, `general.debug`, `general.bstats-metrics`, `general.update-checker`
 - `commands.main`, `commands.aliases`
-- `enderchest-options.disable-enderchest-click`
-- `enderchest-options.disable-plugin-on-endechest-block`
+- `enderchest-options.block-interaction-mode` (`custom|permission|vanilla`)
+- `enderchest-options.play-block-animation`
 - `default-player.enabled`, `default-player.size`, `default-player.allow-command`
-- `import.auto-import-on-join`
+- `overflow.*`
 - `sounds.*`
 
 Text rendering uses MiniMessage via `Text.parse(...)` with legacy serialization compatibility.
 
-The configured `/<main> reload` command runs on the global scheduler, reloads `config.yml`, reads the selected `lang_<locale>.yml` directly from disk, and reapplies command labels/aliases. `LocaleManager` and `CommandRegistrationManager` are transactional: invalid YAML or command conflicts keep the previous value active and make the command report failure.
+The configured `/<main> reload` command runs on the global scheduler, reloads `config.yml`, reads the selected `lang_<locale>.yml` directly from disk, reapplies command labels/aliases, and restarts the backup/overflow schedules. Storage backend/pool, metrics, and update-checker changes still require a full server restart. `LocaleManager` and `CommandRegistrationManager` are transactional: invalid YAML or command conflicts keep the previous value active and make the command report failure.
 
 ## 8) Key classes quick map
 
@@ -202,6 +202,7 @@ The configured `/<main> reload` command runs on the global scheduler, reloads `c
 
 ## 9) Known quirks to remember
 
-- `hasBlockOpenPermission(...)` currently returns config value of `disable-enderchest-click`; naming is easy to misread.
+- Config files from before `block-interaction-mode` are mapped as follows: legacy vanilla toggle -> `vanilla`; legacy `disable-enderchest-click: true` -> `custom`; otherwise -> `permission`.
+- `storage.pool-settings.max-pool-size` also controls the storage I/O executor thread count for every backend.
 
 If you touch these areas, re-check behavior carefully around race conditions and lock lifecycle.

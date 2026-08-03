@@ -53,19 +53,42 @@ public class OverflowManager {
     }
 
     /**
+     * Restarts expiration cleanup using the latest config values.
+     */
+    public void reloadTasks() {
+        stopExpirationTask();
+        reloadConfig();
+        startExpirationTask();
+    }
+
+    /**
      * Reload config values. Call after the configured reload command.
      */
     public void reloadConfig() {
         this.expirationEnabled = plugin.config().getBoolean("overflow.expiration.enabled", false);
-        this.expirationDays = plugin.config().getInt("overflow.expiration.days", 30);
+
+        int configuredExpirationDays = plugin.config().getInt("overflow.expiration.days", 30);
+        this.expirationDays = Math.max(configuredExpirationDays, 1);
+        if (configuredExpirationDays < 1) {
+            plugin.getLogger().warning("overflow.expiration.days must be at least 1. Using 1 day.");
+        }
+
         int checkMinutes = plugin.config().getInt("overflow.expiration.check-interval-minutes", 60);
-        this.checkIntervalTicks = Math.max(checkMinutes, 5) * 60L * 20L; // Min 5 minutes
+        if (checkMinutes < 5) {
+            plugin.getLogger().warning("overflow.expiration.check-interval-minutes must be at least 5. Using 5 minutes.");
+        }
+        this.checkIntervalTicks = Math.max(checkMinutes, 5) * 60L * 20L;
 
         this.loginWarningEnabled = plugin.config().getBoolean("overflow.login-warning.enabled", true);
 
         this.retrievalFeeEnabled = plugin.config().getBoolean("overflow.retrieval-fee.enabled", false);
-        this.flatFee = plugin.config().getDouble("overflow.retrieval-fee.flat-fee", 0);
-        this.perItemFee = plugin.config().getDouble("overflow.retrieval-fee.per-item-fee", 0);
+        double configuredFlatFee = plugin.config().getDouble("overflow.retrieval-fee.flat-fee", 0);
+        double configuredPerItemFee = plugin.config().getDouble("overflow.retrieval-fee.per-item-fee", 0);
+        this.flatFee = Math.max(configuredFlatFee, 0);
+        this.perItemFee = Math.max(configuredPerItemFee, 0);
+        if (configuredFlatFee < 0 || configuredPerItemFee < 0) {
+            plugin.getLogger().warning("Overflow retrieval fees cannot be negative. Negative values are treated as 0.");
+        }
     }
 
     /**

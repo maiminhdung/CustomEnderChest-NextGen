@@ -30,7 +30,7 @@ public class PlayerListener implements Listener {
 
     private final EnderChest plugin;
     private final DebugLogger debug;
-    
+
     /**
      * Tracks which enderchest block each player interacted with.
      * Used to play the close animation when the inventory is closed.
@@ -82,7 +82,9 @@ public class PlayerListener implements Listener {
             return;
         if (event.getClickedBlock().getType() != Material.ENDER_CHEST)
             return;
-        if (plugin.getConfig().getBoolean("enderchest-options.vanilla-enderchest-block"))
+
+        String interactionMode = plugin.config().getBlockInteractionMode();
+        if (interactionMode.equals("vanilla"))
             return;
 
         // Do not open if player is sneaking and holding an item (allows block placement)
@@ -132,23 +134,14 @@ public class PlayerListener implements Listener {
     }
 
     /**
-     * Check if player has permission to open ender chest via block interaction.
-     * Returns true if player is OP, has CustomEnderChest.block.open permission,
-     * OR if enderchest-options.disable-enderchest-click is sabled in config.
+     * Checks whether the configured block interaction mode allows this player to
+     * open the custom chest. Vanilla mode is handled before this method is called.
      */
     private boolean hasBlockOpenPermission(Player player) {
-        // OP players always have permission
-        if (player.isOp()) {
+        if (plugin.config().getBlockInteractionMode().equals("custom")) {
             return true;
         }
-
-        // Check explicit permission
-        if (player.hasPermission("CustomEnderChest.block.open")) {
-            return true;
-        }
-
-        // Check disable-enderchest-click config setting
-        return plugin.getConfig().getBoolean("enderchest-options.disable-enderchest-click", true);
+        return player.isOp() || player.hasPermission("CustomEnderChest.block.open");
     }
 
     private boolean isMigrating(Player player) {
