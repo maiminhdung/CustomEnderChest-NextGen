@@ -138,7 +138,13 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("command.migrate-in-progress"));
                 return true;
             }
-            plugin.getEnderChestManager().openEnderChest(p);
+            
+            if (p.hasPermission("CustomEnderChest.command.open.self")) {
+                plugin.getEnderChestManager().openEnderChest(p);
+            }
+            else {
+                p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+            }
         } else {
             sender.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.players-only"));
         }
@@ -162,8 +168,14 @@ public final class EnderChestCommand implements CommandExecutor, TabCompleter {
 
         // Open own enderchest
         if (args.length == 1) {
-            plugin.getEnderChestManager().openEnderChest(p);
-            return;
+            if (p.hasPermission("CustomEnderChest.command.open.self")) {
+                plugin.getEnderChestManager().openEnderChest(p);
+                return;
+            }
+            else {
+                p.sendMessage(plugin.getLocaleManager().getPrefixedComponent("messages.no-permission"));
+                return;
+            }
         }
 
         // Open other player's enderchest (admin only)
