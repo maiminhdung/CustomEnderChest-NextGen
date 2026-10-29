@@ -1,0 +1,57 @@
+# Setup GUI — DeluxeMenu-style layout. Edit and run /<main-command> reload.
+#
+# Every visual element is an entry under "items:". You can add, remove,
+# move or duplicate items freely.
+#   slots:    slot numbers or ranges, e.g. "0-8" or "0-4, 9, 45-53"
+#   slot:     single slot (alternative to slots)
+#   material: a vanilla Material, "itemadder:<namespace:id>",
+#             "nexo:<item_id>", or "none" to hide the item
+#   name/lore: MiniMessage text, or "lang:<key>" to use the language files
+#              (see the "gui:" section in lang_<locale>.yml). Lore splits
+#              on "\n".
+#   action:   what clicking does:
+#               choose-single  - pick the Single Ender Chest mode
+#               choose-multi   - pick the Multi-Vault mode
+#               close          - close the GUI
+#               none           - decorative (default)
+# filler:   optional material auto-placed in every slot no item covers.
+rows: 6
+title: "lang:gui.setup.title"
+filler: "GRAY_STAINED_GLASS_PANE"
+
+items:
+    # Decorative frame
+    frame:
+      slots: "0-8, 45-53, 9, 17, 27, 35"
+      material: "PURPLE_STAINED_GLASS_PANE"
+
+    # Option 1: classic single Ender Chest
+    single-option:
+      slot: 20
+      material: "CHEST"
+      name: "lang:gui.setup.single-name"
+      lore: "lang:gui.setup.single-lore"
+      action: choose-single
+
+    # Option 2: multi-vault system
+    multi-option:
+      slot: 24
+      material: "ENDER_CHEST"
+      name: "lang:gui.setup.multi-name"
+      lore: "lang:gui.setup.multi-lore"
+      action: choose-multi
+
+    # Info book explaining both modes
+    guide:
+      slot: 40
+      material: "BOOK"
+      name: "lang:gui.setup.guide-name"
+      lore: "lang:gui.setup.guide-lore"
+
+    # Close button (re-open anytime with /<main-command> setup)
+    close:
+      slot: 45
+      material: "BARRIER"
+      name: "lang:gui.setup.close-name"
+      lore: "lang:gui.setup.close-lore"
+      action: close

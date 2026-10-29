@@ -1,0 +1,191 @@
+# File Ngôn ngữ Tiếng Việt cho CustomEnderChest
+
+# Prefix dùng cho tất cả messages
+prefix: "<gray>[<gradient:#C0FFEE:#B4D0FF>Rương Ender</gradient>]</gray> "
+
+messages:
+  no-permission: "<red>Bạn không có quyền để làm điều này.</red>"
+  no-permission-block-open: "<red>Bạn không có quyền để mở rương Ender.</red>"
+  players-only: "<red>Lệnh này chỉ có thể được thực thi bởi người chơi.</red>"
+  reload-success: "<green>Đã tải lại cấu hình, ngôn ngữ và command.</green>"
+  reload-failed: "<red>Một phần reload thất bại. Giá trị cũ vẫn được dùng cho phần bị lỗi; hãy kiểm tra console.</red>"
+  data-still-loading: "<yellow>Dữ liệu của bạn đang được tải, vui lòng chờ trong giây lát...</yellow>"
+  data-busy: "<red>Dữ liệu người chơi hiện đang bận. Vui lòng thử lại sau giây lát.</red>"
+  save-error: "<red>Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.</red>"
+  invalid-player: "<red>Tên người chơi không hợp lệ.</red>"
+  update-available: "<yellow>CustomEnderChest bản <white><latest></white> đã có sẵn (bạn đang dùng <white><current></white>). Tải tại: <gray><link>"
+  vault-no-access: "<red>Bạn không có quyền truy cập Rương <vault>."
+  vault-invalid: "<red>Số rương không hợp lệ. Dùng từ 1 đến <max>."
+
+  # Migration messages
+  migration-data-incompatible: "<yellow>Cảnh báo: Dữ liệu Rương Ender của bạn không tương thích với phiên bản server mới (1.21.5+)."
+  migration-data-cleared: "<yellow>Rương Ender của bạn đã bị reset do không tương thích. Dữ liệu cũ vẫn được lưu trong database."
+  migration-contact-admin: "<gray>Vui lòng liên hệ admin nếu cần khôi phục vật phẩm."
+  data-migrated: "<green>Dữ liệu rương ender của bạn đã được chuyển sang tài khoản mới."
+
+  # Overflow messages
+  overflow-items-saved: "<yellow>⚠ Một số vật phẩm vượt quyền hạn đã được lưu vào kho dự phòng."
+  overflow-will-restore: "<gray>Chúng sẽ tự động được khôi phục khi bạn nâng cấp Rương Ender hoặc dùng <command>."
+  overflow-items-restored: "<green>✓ Đã khôi phục <count> vật phẩm từ kho dự phòng!"
+  overflow-login-warning: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng. Dùng <command> để nhận."
+  overflow-login-warning-expiring: "<yellow>⚠ Bạn có <count> vật phẩm trong kho dự phòng sẽ hết hạn sau <days> ngày! Dùng <command> để nhận."
+  overflow-expired: "<red>Vật phẩm dự phòng (<count> vật phẩm) đã hết hạn và bị xóa."
+  overflow-fee-charged: "<yellow>Đã trừ <amount> khi nhận <count> vật phẩm dự phòng."
+  overflow-fee-insufficient: "<red>Bạn cần ít nhất <amount> để nhận vật phẩm dự phòng. Số dư: <balance>"
+  overflow-fee-no-vault: "<red>Không tìm thấy plugin kinh tế (Vault). Phí nhận vật phẩm đã tắt."
+
+command:
+  usage: "<red>Sử dụng: <gray>/<label> <usage>"
+  player-not-found: "<red>Không tìm thấy người chơi '<player>' hoặc họ chưa có dữ liệu."
+  delete-usage: "<red>Sử dụng: <gray>/<label> delete <tên_người_chơi>"
+  delete-success: "<green>Đã xóa thành công dữ liệu Rương Ender của <white><player></white>."
+  delete-cancelled: "<red>Việc xóa rương đã bị một plugin khác hủy."
+  loading-chest: "<yellow>Đang tải Rương Ender của <white><player></white>..."
+  import-usage: "<red>Sử dụng: <gray>/<label> import <vanilla>"
+  import-invalid-type: "<red>Loại import không hợp lệ. Sử dụng: <gray>vanilla"
+  migrate-usage: "<yellow>Sử dụng: <gray>/<label> migrate <yml|h2|mysql> <yml|h2|mysql>"
+  migrate-example: "<gray>Ví dụ: /<label> migrate yml mysql"
+  migrate-running: "<red>Một tiến trình migrate khác đang diễn ra. Vui lòng đợi!"
+  migrate-same-type: "<red>Định dạng nguồn và đích không được giống nhau."
+  migrate-init: "<yellow>Đang khởi tạo kết nối database..."
+  migrate-conn-source-err: "<red>Lỗi kết nối định dạng nguồn. Migrate bị huỷ."
+  migrate-conn-target-err: "<red>Lỗi kết nối định dạng đích. Migrate bị huỷ."
+  migrate-start: "<yellow>Bắt đầu chuyển dữ liệu từ <source> sang <target>..."
+  migrate-no-data: "<red>Không tìm thấy dữ liệu nào để chuyển đổi."
+  migrate-success: "<green>Chuyển dữ liệu hoàn tất! Thành công: <success>/<total>, Lỗi: <failed>"
+  migrate-note: "<yellow>⚠ Lưu ý: <white>Sau khi chuyển đổi dữ liệu và muốn sử dụng dữ liệu đó thì hãy tắt máy chủ và chỉnh thông tin trong file config.yml rồi mở máy chủ để sử dụng."
+  migrate-error-unknown: "<red>Đã xảy ra lỗi không xác định lúc chuyển dữ liệu. Xem Console để biết chi tiết."
+  migrate-in-progress: "<red>Hệ thống đang bảo trì dữ liệu (migrate), không thể mở rương ngay lúc này!"
+  overflow-title: "<dark_purple>Overflow của <player> <dark_gray>[Rương <vault>]"
+  overflow-admin-title: "<dark_red>Admin Overflow: <white><player></white> <dark_gray>[Rương <vault>]"
+  overflow-all-title: "<dark_purple>Overflow của <player> <dark_gray>[Tất cả rương]"
+  overflow-empty: "<green>Bạn không có vật phẩm nào trong kho dự phòng."
+  overflow-admin-empty: "<green><player> không có vật phẩm trong kho dự phòng."
+  overflow-no-enderchest: "<red>Bạn cần Rương Ender để nhận vật phẩm dự phòng."
+  overflow-claimed: "<green>✓ Đã nhận <count> vật phẩm từ kho dự phòng!"
+  overflow-enderchest-full: "<yellow>Hành trang của bạn đã đầy. Vật phẩm còn lại vẫn ở kho dự phòng."
+  overflow-claim-failed: "<red>Nhận vật phẩm dự phòng thất bại. Vui lòng thử lại."
+
+titles:
+  enderchest: "<level> - <light_purple>Rương của <player>"
+  admin_view: "<dark_red>Admin Xem: <white><player>"
+  enderchest-vault: "<level> - <light_purple>Rương <vault> của <player>"
+  admin_view_vault: "<dark_red>Admin View: <white><player></white> [Rương <vault>]"
+
+# Tên cấp độ được dùng trong biến <level>
+levels:
+  '0': "<white>Cấp 1" # 1 hàng (9 ô)
+  '1': "<green>Cấp 2" # 2 hàng (18 ô)
+  '2': "<aqua>Cấp 3" # 3 hàng (27 ô)
+  '3': "<yellow>Cấp 4" # 4 hàng (36 ô)
+  '4': "<gold>Cấp 5" # 5 hàng (45 ô)
+  '5': "<light_purple><bold>Cấp 6" # 6 hàng (54 ô)
+
+import:
+  started: "<green>Bắt đầu chuyển dữ liệu vanilla sang plugin cho tất cả người chơi trực tuyến..."
+  complete: "<green>Chuyển hoàn tất! Đã chuyển cho <white><imported></white> người chơi, bỏ qua <white><skipped></white>."
+  nbtapi-missing: "<red>Cần cài đặt plugin NBTAPI để sử dụng lệnh này. Vui lòng cài đặt NBTAPI trên server."
+stats:
+  help-header: "<yellow>Các lệnh thống kê:"
+  help-summary: "<gray><command> <white>- Xem tổng quan thống kê lưu trữ"
+  help-validate: "<gray><command> <white>- Kiểm tra tính toàn vẹn dữ liệu đã lưu"
+  collecting: "<yellow>Đang thu thập thống kê lưu trữ..."
+  validating: "<yellow>Đang kiểm tra dữ liệu đã lưu..."
+  header: "<yellow>=================== Thống kê ===================="
+  validation-header: "<yellow>=================== Kiểm tra ===================="
+  footer: "<yellow>================================================="
+  storage-type: "<yellow>Kiểu lưu trữ: <white><value>"
+  total-records: "<yellow>Tổng hồ sơ người chơi: <white><value>"
+  records-with-items: "<yellow>Người chơi có vật phẩm: <white><value>"
+  total-items: "<yellow>Tổng vật phẩm đã lưu: <white><value>"
+  overflow-players: "<yellow>Người chơi có overflow: <white><value>"
+  overflow-items: "<yellow>Vật phẩm overflow: <white><value>"
+  data-size: "<yellow>Dung lượng dữ liệu (bytes): <white><value>"
+  validation-total-records: "<yellow>Tổng hồ sơ: <white><value>"
+  validation-records-with-items: "<yellow>Hồ sơ có vật phẩm: <white><value>"
+  validation-records-with-overflow: "<yellow>Hồ sơ có overflow: <white><value>"
+  validation-corrupted: "<yellow>Hồ sơ bị hỏng: <white><value>"
+  vault-records: "<yellow>Rương có dữ liệu: <white><value>"
+  corrupted-list-header: "<red>Các hồ sơ bị hỏng (tối đa hiển thị 10):"
+  corrupted-entry: "<red>- <player> (<uuid>): <error>"
+  corrupted-more: "<red>... và <count> hồ sơ bị hỏng khác."
+
+vault-selector:
+  locked-message: "<red>Bạn không có quyền truy cập Rương <vault>."
+  disabled: "<red>GUI chọn rương đã bị tắt trên server này."
+  items-unknown: "?"
+
+setup:
+  applied: "<green>Đã chọn chế độ: <white><mode></white>."
+  reminder: "<yellow>Mẹo: xem <white>config.yml</white> để tinh chỉnh kích thước, quyền và GUI selector."
+
+gui:
+  setup:
+    title: "<dark_aqua>▶ <black>Thiết lập Ender Chest <dark_gray>[<dark_aqua>/cec setup<dark_gray>]"
+    single-name: "<green><bold>MỘT ENDER CHEST <dark_gray>(cổ điển)"
+    single-lore: "
+<white>Thông tin chung:
+
+<gray>Mỗi người một rương, giống vanilla</gray>
+<gray>và các phiên bản trước của plugin.</gray>
+
+<gray>Size theo</gray> <gold>CustomEnderChest.level.<0-5></gold>
+<gray>Mặc định:</gray> <gold>default-player.size</gold>
+
+<yellow>▶ Click để chọn chế độ này</yellow>
+<gray>Có thể bật Multi-Vault sau qua</gray>
+<gray><gold>multi-vault.enabled</gold> <gray>trong config.yml.</gray>"
+    multi-name: "<light_purple><bold>MULTI-VAULT <dark_gray>(nhiều rương)"
+    multi-lore: "
+<white>Thông tin chung:
+
+<gray>Mỗi người sở hữu nhiều rương</gray>
+<gray>(vault) mở khóa bằng permission.</gray>
+
+<gray>Mở vault:</gray> <gold>CustomEnderChest.vaults.<n></gold>
+<gray>Size Vault 1:</gray> <gold>CustomEnderChest.level.<0-5></gold>
+<gray>Size Vault n:</gray> <gold>CustomEnderChest.vault.<n>.level.<0-5></gold>
+<gray>GUI selector, overflow từng rương,</gray>
+<gray>admin xem được mọi vault.</gray>
+
+<yellow>▶ Click để chọn chế độ này</yellow>
+<gray>Dữ liệu cũ tự thành Vault 1.</gray>"
+    guide-name: "<aqua><bold>CÁCH HOẠT ĐỘNG <dark_gray>(thông tin)"
+    guide-lore: "
+<gray>Cả hai chế độ dùng chung một nơi</gray>
+<gray>lưu dữ liệu; dữ liệu luôn an toàn.</gray>
+
+<white>Một rương:</white> <gray>27 ô mặc định,</gray>
+<gray>mở rộng tới 54 ô.</gray>
+
+<white>Multi-Vault:</white> <gray>tối đa</gray> <gold>multi-vault.max-vaults</gold>
+<gray>rương mỗi người, mỗi rương</gray>
+<gray>một kích thước riêng.</gray>
+
+<yellow>▶ Click vào lựa chọn để chọn</yellow>"
+    close-name: "<red><bold>ĐÓNG <dark_gray>(để sau)"
+    close-lore: "
+<gray>Đóng GUI này mà chưa chọn.</gray>
+<gray>Sẽ hiện lại khi admin tiếp theo</gray>
+<gray>vào, hoặc gõ</gray> <gold>/cec setup</gold><gray>.</gray>"
+  selector:
+    title: "<dark_aqua>▶ <black>Vault của bạn <dark_gray>[<dark_aqua>/cec vaults<dark_gray>]"
+    vault-name: "<light_purple><bold>VAULT <vault> <dark_gray>(<size> ô)"
+    vault-lore: "
+<white>Thông tin vault:
+
+<gray>Vật phẩm:</gray> <yellow><items></yellow>
+<gray>Kích thước:</gray> <yellow><size> ô</yellow>
+
+<yellow>▶ Click để mở vault này</yellow>"
+    locked-name: "<gray><bold>VAULT <vault> <dark_gray>(chưa mở khóa)"
+    locked-lore: "
+<white>Thông tin vault:
+
+<gray>Kích thước:</gray> <yellow>???</yellow>
+
+<red>✘ Bạn không có quyền</red>
+<red>sử dụng vault này.</red>"
+    close-name: "<red><bold>ĐÓNG"
+    close-lore: "
+<gray>Đóng menu này.</gray>"

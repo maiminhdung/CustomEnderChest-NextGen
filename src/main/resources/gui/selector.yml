@@ -1,0 +1,41 @@
+# Vault selector GUI — DeluxeMenu-style layout.
+# Edit and run /<main-command> reload to apply.
+#
+# Every visual element is an entry under "items:" (slots/slot, material,
+# name/lore, action — see gui/setup.yml for the full field list).
+#
+# Special dynamic item — action "open-vault": its slots list maps
+# positionally to vault ids (first slot = Vault 1, second = Vault 2, ...).
+# Locked vaults use the "locked:" sub-section when show-locked is true in
+# config.yml. Placeholders: <vault> <size> <items>
+rows: 6
+title: "lang:gui.selector.title"
+# Also show locked vaults (from config.yml multi-vault.selector-gui.show-locked)
+show-locked: true
+filler: "GRAY_STAINED_GLASS_PANE"
+
+items:
+    # Decorative frame around the vault area
+    frame:
+      slots: "0-8, 45-53, 9, 17, 27, 35"
+      material: "PURPLE_STAINED_GLASS_PANE"
+
+    # One item per vault (Vault 1, 2, 3 ... following the slots order)
+    vaults:
+      slots: "10-16, 19-25, 28-34"
+      material: "ENDER_CHEST"
+      name: "lang:gui.selector.vault-name"
+      lore: "lang:gui.selector.vault-lore"
+      action: open-vault
+      locked:
+        material: "GRAY_DYE"
+        name: "lang:gui.selector.locked-name"
+        lore: "lang:gui.selector.locked-lore"
+
+    # Close button
+    close:
+      slot: 49
+      material: "BARRIER"
+      name: "lang:gui.selector.close-name"
+      lore: "lang:gui.selector.close-lore"
+      action: close

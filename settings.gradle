@@ -1,1 +1,3 @@
 rootProject.name = 'CustomEnderChest-NextGen'
+
+include 'api'

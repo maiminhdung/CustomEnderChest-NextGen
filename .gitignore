@@ -9,3 +9,6 @@
 /.codex/
 /docs/
 /tests/
+build/
+.gradle/
+AGENTS.md

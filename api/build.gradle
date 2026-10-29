@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'org.maiminhdung.customenderchest'
+version = rootProject.version
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "papermc-repo"
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(21)
+}
+
+javadoc {
+    options.encoding = 'UTF-8'
+    options.memberLevel = JavadocMemberLevel.PUBLIC
+    options.links('https://jd.papermc.io/paper/1.21.1/')
+    options.docTitle = "CustomEnderChest API ${project.version}"
+    options.windowTitle = "CustomEnderChest API"
+}
+
+publishing {
+    publications {
+        api(MavenPublication) {
+            artifactId = 'customenderchest-api'
+            from components.java
+        }
+    }
+}

@@ -6,13 +6,13 @@ website: https://maiminhdung.dev/
 load: STARTUP
 api-version: 1.21
 folia-supported: true
-softdepend: [NBTAPI, Vault]
+softdepend: [NBTAPI, Vault, ItemAdder, Nexo]
 libraries:
   - com.mysql:mysql-connector-j:8.4.0
 commands:
   customenderchest:
     description: Main command for CustomEnderChest.
-    usage: "/<command> [open|reload|import vanilla|delete|migrate|stats]"
+    usage: "/<command> [open|vaults|overflow|setup|reload|import|delete|migrate|stats]"
 permissions:
   CustomEnderChest.level.0:
     description: 9 slots enderchest (1 raw).
@@ -31,6 +31,9 @@ permissions:
     default: false
   CustomEnderChest.level.5:
     description: 54 slots enderchest (6 raws).
+    default: false
+  CustomEnderChest.vaults.*:
+    description: Unlocks all vaults up to vaults.max-vaults. Use CustomEnderChest.vaults.<number> to unlock a specific vault count and CustomEnderChest.vault.<number>.level.<0-5> for per-vault sizes.
     default: false
   CustomEnderChest.command.open.self:
     description: Allows opening your own chest with the configured command.
@@ -56,3 +59,6 @@ permissions:
   CustomEnderChest.command.overflow.other:
     description: Allows viewing another player's overflow items via the configured command.
     default: op
+  CustomEnderChest.command.vaults:
+    description: Allows opening the vault selector GUI with the configured command.
+    default: false

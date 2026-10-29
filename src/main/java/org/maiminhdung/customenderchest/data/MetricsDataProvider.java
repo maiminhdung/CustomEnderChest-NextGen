@@ -66,7 +66,7 @@ public class MetricsDataProvider {
     public int getOpenChests() {
         try {
             EnderChestManager manager = plugin.getEnderChestManager();
-            return manager != null ? manager.getOpenInventories().size() : 0;
+            return manager != null ? manager.getOpenVaults().size() : 0;
         } catch (Exception e) {
             return 0;
         }

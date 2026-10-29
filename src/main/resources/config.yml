@@ -4,15 +4,23 @@
 # Messages and inventory titles are configured in the /lang directory.
 # Run /<main-command> reload after changing settings marked [Reload].
 # Restart the server after changing settings marked [Restart].
+# Section headers marked [RELOAD] or [RESTART] apply to every key in that
+# section.
 
 # Internal schema version. Do not edit manually.
-config-version: "2.1.3-dev"
+config-version: "2.2.0-dev"
 
 # General settings
 general:
-  # [Reload] Language file code: lang_<locale>.yml
-  # Bundled locales: en, vi, nl, zhcn, es
-  locale: "en"
+  # [Reload] Language file code (Minecraft locale code): lang_<locale>.yml
+  # Bundled: en_us, vi_vn, zh_cn, nl_nl, es_es
+  locale: "en_us"
+
+  # [Reload] Sends messages in each player's client language when a matching
+  # language file exists (players with other clients see the locale above;
+  # English is the final fallback). Also registers the translations with
+  # Adventure's GlobalTranslator. Item GUIs render per player explicitly.
+  player-locale: true
 
   # [Reload] Enables additional troubleshooting logs.
   debug: false
@@ -26,7 +34,11 @@ general:
   # [Restart] Checks Modrinth for plugin updates on startup.
   update-checker: true
 
-# Command labels
+  # [Restart] Update channel for the Modrinth check: release, beta or alpha.
+  # "beta" also includes releases, "alpha" includes everything.
+  update-channel: "release"
+
+# [RELOAD] Command labels
 commands:
   # [Reload] Primary command label, without the leading slash.
   main: "cec"
@@ -37,7 +49,7 @@ commands:
     - "customenderchest"
     - "customec"
 
-# Player data backups
+# [RELOAD] Player data backups
 # Backups are stored in the plugin's /backups directory.
 # MySQL backups contain connection/table information only; use mysqldump or your
 # database provider's backup system for a complete MySQL backup.
@@ -59,8 +71,7 @@ backup:
   # [Reload] Creates one final backup during a clean server shutdown.
   backup-on-shutdown: true
 
-# Data storage
-# All settings in this section require a server restart.
+# [RESTART] Data storage
 storage:
   # Available types:
   # yml   - One readable YAML file per player; suitable for small servers.
@@ -100,8 +111,48 @@ storage:
   # attacker claim another player's data. Leave this disabled during normal use.
   migrate-uuid-by-name: false
 
-# Items that no longer fit after a player's chest size decreases
-# All settings in this section support /<main-command> reload.
+# [RELOAD] Multi-Vault: multiple chests per player
+# Vault 1 is the default Ender Chest (existing CustomEnderChest.level.* sizes
+# still apply to it). Players unlock more vaults with:
+#   CustomEnderChest.vaults.<number>  - access to vaults 1..<number>
+#   CustomEnderChest.vaults.*         - access to every vault up to max-vaults
+# Vault sizes for vault 2+ use CustomEnderChest.vault.<number>.level.<0-5>
+# (or .level.* for 54 slots) and otherwise inherit the Vault 1 size.
+# Operators always have every vault at maximum size.
+multi-vault:
+  # Enables the multi-vault system. When disabled, everyone only has the
+  # single Ender Chest (Vault 1), exactly like previous plugin versions:
+  # vault permissions are ignored, the selector GUI and vault arguments are
+  # blocked. Stored vault 2+ data is kept and becomes accessible again when
+  # this is re-enabled. The first-run setup GUI (/<main-command> setup)
+  # writes this key when an admin makes their choice.
+  enabled: true
+
+  # Global cap on how many vaults a player can unlock through permissions.
+  max-vaults: 9
+
+  # Vault selector GUI opened with /<main-command> vaults (alias: menu).
+  # Items, slots and decorations are configured in gui/selector.yml
+  # (DeluxeMenu-style layout).
+  selector-gui:
+    # Enables the selector GUI and command.
+    enabled: true
+
+    # Also shows locked vaults as disabled entries.
+    show-locked: true
+
+    # Opens the selector when players right-click an Ender Chest block
+    # (instead of opening Vault 1 directly). Disable to keep the classic
+    # block-click behavior.
+    open-on-block-click: true
+
+    # Makes the bare /<main-command> command open the selector instead of
+    # Vault 1 while multi-vault is enabled. /<main-command> open and
+    # /<main-command> <number> always open vaults directly.
+    use-as-main-command: true
+
+# [RELOAD] Items that no longer fit after a player's chest size decreases
+# Each vault keeps its own overflow storage.
 overflow:
   expiration:
     # Permanently deletes unclaimed overflow items after the configured duration.
@@ -122,8 +173,7 @@ overflow:
     flat-fee: 0
     per-item-fee: 0
 
-# Ender Chest block behavior
-# These settings support /<main-command> reload.
+# [RELOAD] Ender Chest block behavior
 enderchest-options:
   # What happens when a player right-clicks an Ender Chest block:
   # custom     - Opens the custom chest for every eligible player.
@@ -137,8 +187,12 @@ enderchest-options:
   # Disable this if you want only the custom open/close sounds below.
   play-block-animation: true
 
-# Defaults used when a player has no CustomEnderChest.level.<0-5> permission
-# These settings support /<main-command> reload.
+  # Silently cancels Ender Chest block interaction for vanished players
+  # (EssentialsX vanish, Vanish metadata, and similar plugins), so vanished
+  # staff never trigger chest opening, sounds, or animations.
+  ignore-vanished-players: true
+
+# [RELOAD] Defaults used when a player has no CustomEnderChest.level.<0-5> permission
 default-player:
   # Gives players a chest without requiring a level permission.
   enabled: true
@@ -150,8 +204,7 @@ default-player:
   # CustomEnderChest.commands permission.
   allow-command: true
 
-# Sound settings
-# These settings support /<main-command> reload.
+# [RELOAD] Sound settings
 sounds:
   # Disables all sounds played directly by the plugin.
   disable-all: false

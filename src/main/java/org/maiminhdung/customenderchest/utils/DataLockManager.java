@@ -9,67 +9,70 @@ import java.util.function.Supplier;
 /**
  * Manages the "locking" of player data operations to prevent
  * asynchronous conflicts (race conditions).
+ *
+ * Locks are keyed by {@link UUID} (whole player) or {@link VaultKey}
+ * (a single vault of a player).
  */
 public class DataLockManager {
 
-    private final Cache<UUID, Boolean> lockedPlayers = CacheBuilder.newBuilder()
+    private final Cache<Object, Boolean> lockedKeys = CacheBuilder.newBuilder()
             .expireAfterWrite(60, TimeUnit.SECONDS)
             .build();
 
     /**
-     * Attempts to lock a UUID atomically.
-     * @param uuid The UUID to lock.
+     * Attempts to lock a key atomically.
+     * @param key The key to lock (UUID or VaultKey).
      * @return true if the lock was acquired successfully, false if it was already locked.
      */
-    public boolean lock(UUID uuid) {
-        return lockedPlayers.asMap().putIfAbsent(uuid, Boolean.TRUE) == null;
+    public boolean lock(Object key) {
+        return lockedKeys.asMap().putIfAbsent(key, Boolean.TRUE) == null;
     }
 
     /**
-     * Unlocks a UUID.
-     * @param uuid The UUID to unlock.
+     * Unlocks a key.
+     * @param key The key to unlock.
      */
-    public void unlock(UUID uuid) {
-        lockedPlayers.invalidate(uuid);
+    public void unlock(Object key) {
+        lockedKeys.invalidate(key);
     }
 
     /**
-     * Checks if a UUID is currently locked.
+     * Checks if a key is currently locked.
      * Note: Prefer using tryLock() or lockAndRun() to avoid race conditions.
-     * @param uuid The UUID to check.
-     * @return true if the UUID is locked.
+     * @param key The key to check.
+     * @return true if the key is locked.
      */
-    public boolean isLocked(UUID uuid) {
-        return lockedPlayers.asMap().containsKey(uuid);
+    public boolean isLocked(Object key) {
+        return lockedKeys.asMap().containsKey(key);
     }
 
     /**
-     * Atomically attempts to lock a UUID. This is the same as lock()
+     * Atomically attempts to lock a key. This is the same as lock()
      * but with clearer intent for try-lock pattern.
-     * @param uuid The UUID to lock.
+     * @param key The key to lock.
      * @return true if the lock was acquired, false if already locked.
      */
-    public boolean tryLock(UUID uuid) {
-        return lock(uuid);
+    public boolean tryLock(Object key) {
+        return lock(key);
     }
 
     /**
      * Executes a runnable while holding the lock.
      * If the lock cannot be acquired, does nothing and returns false.
      * The lock is always released after the runnable completes.
-     * @param uuid The UUID to lock.
+     * @param key The key to lock.
      * @param runnable The action to execute while holding the lock.
      * @return true if the lock was acquired and the action was executed.
      */
-    public boolean lockAndRun(UUID uuid, Runnable runnable) {
-        if (!lock(uuid)) {
+    public boolean lockAndRun(Object key, Runnable runnable) {
+        if (!lock(key)) {
             return false;
         }
         try {
             runnable.run();
             return true;
         } finally {
-            unlock(uuid);
+            unlock(key);
         }
     }
 
@@ -78,18 +81,18 @@ public class DataLockManager {
      * If the lock cannot be acquired, returns null.
      * The lock is always released after the supplier completes.
      * @param <T> The return type.
-     * @param uuid The UUID to lock.
+     * @param key The key to lock.
      * @param supplier The action to execute while holding the lock.
      * @return The result of the supplier, or null if the lock was not acquired.
      */
-    public <T> T lockAndGet(UUID uuid, Supplier<T> supplier) {
-        if (!lock(uuid)) {
+    public <T> T lockAndGet(Object key, Supplier<T> supplier) {
+        if (!lock(key)) {
             return null;
         }
         try {
             return supplier.get();
         } finally {
-            unlock(uuid);
+            unlock(key);
         }
     }
 }

@@ -123,7 +123,7 @@ public class BulkImporter {
                     }
 
                     return plugin.getStorageManager().getStorage()
-                            .saveEnderChest(data.uuid, data.name, data.size, data.items)
+                            .saveVault(data.uuid, data.name, 1, data.size, data.items)
                             .thenRun(() -> {
                                 imported.incrementAndGet();
                                 plugin.getDebugLogger().log("Imported vanilla data for " + data.name);

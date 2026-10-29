@@ -122,7 +122,8 @@ public class OverflowManager {
 
     /**
      * Check if overflow items have expired for all players and delete them.
-     * Runs on async thread. Thread-safe.
+     * Runs per vault (each vault has its own overflow record and created_at).
+     * Thread-safe.
      */
     private void cleanupExpiredOverflow() {
         StorageInterface storage = plugin.getStorageManager().getStorage();
@@ -139,52 +140,52 @@ public class OverflowManager {
                     continue;
                 }
 
-                // Check creation time first to avoid loading all items if not expired
-                getOverflowCreatedAt(info.playerUUID).thenAccept(createdAt -> {
-                    if (createdAt == null) {
-                        dataLockManager.unlock(info.playerUUID);
-                        return;
-                    }
+                for (int vaultId : info.vaultIds) {
+                    final int vid = vaultId;
+                    // Check creation time first to avoid loading items if not expired
+                    storage.getOverflowCreatedAt(info.playerUUID, vid).thenAccept(createdAt -> {
+                        if (createdAt == null) {
+                            return;
+                        }
 
-                    if (now - createdAt > expirationMillis) {
-                        // Expired! First load to know the count, then clear
-                        storage.loadOverflowItems(info.playerUUID).thenAccept(overflowItems -> {
-                            int count = (overflowItems != null) ? overflowItems.length : 0;
-                            plugin.getEnderChestManager().queueStorageOperation(info.playerUUID,
-                                    () -> storage.clearOverflowItems(info.playerUUID)).thenRun(() -> {
-                                plugin.getLogger().info("[Overflow] Expired overflow for " + info.playerName
-                                        + " (" + info.playerUUID + ") - " + count + " items removed.");
+                        if (now - createdAt > expirationMillis) {
+                            // Expired! First load to know the count, then clear
+                            storage.loadOverflowItems(info.playerUUID, vid).thenAccept(overflowItems -> {
+                                int count = (overflowItems != null) ? overflowItems.length : 0;
+                                plugin.getEnderChestManager().queueStorageOperation(info.playerUUID,
+                                        () -> storage.clearOverflowItems(info.playerUUID, vid)).thenRun(() -> {
+                                    plugin.getLogger().info("[Overflow] Expired overflow for " + info.playerName
+                                            + " (" + info.playerUUID + ") vault " + vid + " - " + count + " items removed.");
 
-                                // Notify online player
-                                Player onlinePlayer = Bukkit.getPlayer(info.playerUUID);
-                                if (onlinePlayer != null && onlinePlayer.isOnline()) {
-                                    Scheduler.runEntityTask(onlinePlayer, () -> {
-                                        LocaleManager locale = plugin.getLocaleManager();
-                                        onlinePlayer.sendMessage(locale.getPrefixedComponent(
-                                                "messages.overflow-expired",
-                                                Placeholder.unparsed("count", String.valueOf(count))));
-                                    });
-                                }
-                                dataLockManager.unlock(info.playerUUID);
+                                    // Notify online player
+                                    Player onlinePlayer = Bukkit.getPlayer(info.playerUUID);
+                                    if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                                        Scheduler.runEntityTask(onlinePlayer, () -> {
+                                            LocaleManager locale = plugin.getLocaleManager();
+                                            onlinePlayer.sendMessage(locale.getPrefixedComponent(onlinePlayer, 
+                                                    "messages.overflow-expired",
+                                                    Placeholder.unparsed("count", String.valueOf(count))));
+                                        });
+                                    }
+                                }).exceptionally(ex -> {
+                                    EnderChest.trackError(ex);
+                                    return null;
+                                });
                             }).exceptionally(ex -> {
-                                dataLockManager.unlock(info.playerUUID);
                                 EnderChest.trackError(ex);
                                 return null;
                             });
-                        }).exceptionally(ex -> {
-                            dataLockManager.unlock(info.playerUUID);
-                            EnderChest.trackError(ex);
-                            return null;
-                        });
-                    } else {
-                        // Not expired
-                        dataLockManager.unlock(info.playerUUID);
-                    }
-                }).exceptionally(ex -> {
-                    dataLockManager.unlock(info.playerUUID);
-                    EnderChest.trackError(ex);
-                    return null;
-                });
+                        }
+                    }).exceptionally(ex -> {
+                        EnderChest.trackError(ex);
+                        return null;
+                    });
+                }
+
+                // The per-vault operations run async; unlock after a short chain to
+                // avoid holding the lock across vault loads. Clearing is queued
+                // through the player's save chain, which serializes with saves.
+                dataLockManager.unlock(info.playerUUID);
             }
         }).exceptionally(ex -> {
             plugin.getLogger().log(Level.WARNING, "[Overflow] Error during expiration cleanup", ex);
@@ -194,18 +195,7 @@ public class OverflowManager {
     }
 
     /**
-     * Get the overflow creation timestamp for a player.
-     * This queries the storage layer for the created_at field.
-     *
-     * @param playerUUID The player's UUID
-     * @return The creation timestamp in millis, or null if not found
-     */
-    private CompletableFuture<Long> getOverflowCreatedAt(UUID playerUUID) {
-        return plugin.getStorageManager().getStorage().getOverflowCreatedAt(playerUUID);
-    }
-
-    /**
-     * Send login warning to a player if they have overflow items.
+     * Send login warning to a player if they have overflow items in any vault.
      * Thread-safe: called from onPlayerJoin which is on entity thread.
      *
      * @param player The player who just joined
@@ -217,55 +207,64 @@ public class OverflowManager {
         // Don't warn again if already warned this session
         if (warnedThisSession.contains(player.getUniqueId())) return;
 
-        plugin.getStorageManager().getStorage().loadOverflowItems(player.getUniqueId())
-                .thenAccept(overflowItems -> {
-                    if (overflowItems == null || overflowItems.length == 0) return;
+        StorageInterface storage = plugin.getStorageManager().getStorage();
+        UUID uuid = player.getUniqueId();
 
-                    int count = overflowItems.length;
+        storage.getVaultIds(uuid).thenAccept(vaultIds -> {
+            int totalCount = 0;
+            long earliestCreatedAt = Long.MAX_VALUE;
 
-                    if (expirationEnabled) {
-                        // Check how many days left
-                        getOverflowCreatedAt(player.getUniqueId()).thenAccept(createdAt -> {
-                            Scheduler.runEntityTask(player, () -> {
-                                if (!player.isOnline()) return;
+            for (int vaultId : vaultIds) {
+                ItemStack[] items;
+                try {
+                    items = storage.loadOverflowItems(uuid, vaultId).join();
+                } catch (Exception e) {
+                    continue;
+                }
+                if (items == null || items.length == 0) continue;
+                totalCount += items.length;
 
-                                LocaleManager locale = plugin.getLocaleManager();
-                                if (createdAt != null) {
-                                    long expirationMillis = (long) expirationDays * 24 * 60 * 60 * 1000L;
-                                    long now = System.currentTimeMillis();
-                                    long elapsed = now - createdAt;
-                                    long remaining = expirationMillis - elapsed;
-                                    int daysLeft = Math.max(1, (int) (remaining / (24 * 60 * 60 * 1000L)));
-
-                                    player.sendMessage(locale.getPrefixedComponent(
-                                            "messages.overflow-login-warning-expiring",
-                                            Placeholder.unparsed("count", String.valueOf(count)),
-                                            Placeholder.unparsed("days", String.valueOf(daysLeft)),
-                                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
-                                } else {
-                                    // No timestamp, just generic warning
-                                    player.sendMessage(locale.getPrefixedComponent(
-                                            "messages.overflow-login-warning",
-                                            Placeholder.unparsed("count", String.valueOf(count)),
-                                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
-                                }
-                                warnedThisSession.add(player.getUniqueId());
-                            });
-                        });
-                    } else {
-                        // No expiration, just generic warning
-                        Scheduler.runEntityTask(player, () -> {
-                            if (!player.isOnline()) return;
-
-                            LocaleManager locale = plugin.getLocaleManager();
-                            player.sendMessage(locale.getPrefixedComponent(
-                                    "messages.overflow-login-warning",
-                                    Placeholder.unparsed("count", String.valueOf(count)),
-                                    Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
-                            warnedThisSession.add(player.getUniqueId());
-                        });
+                if (expirationEnabled) {
+                    try {
+                        Long createdAt = storage.getOverflowCreatedAt(uuid, vaultId).join();
+                        if (createdAt != null && createdAt < earliestCreatedAt) {
+                            earliestCreatedAt = createdAt;
+                        }
+                    } catch (Exception ignored) {
                     }
-                });
+                }
+            }
+
+            if (totalCount == 0) return;
+
+            final int count = totalCount;
+            final Long earliest = earliestCreatedAt == Long.MAX_VALUE ? null : earliestCreatedAt;
+
+            Scheduler.runEntityTask(player, () -> {
+                if (!player.isOnline()) return;
+
+                LocaleManager locale = plugin.getLocaleManager();
+                if (expirationEnabled && earliest != null) {
+                    long expirationMillis = (long) expirationDays * 24 * 60 * 60 * 1000L;
+                    long now = System.currentTimeMillis();
+                    long elapsed = now - earliest;
+                    long remaining = expirationMillis - elapsed;
+                    int daysLeft = Math.max(1, (int) (remaining / (24 * 60 * 60 * 1000L)));
+
+                    player.sendMessage(locale.getPrefixedComponent(player, 
+                            "messages.overflow-login-warning-expiring",
+                            Placeholder.unparsed("count", String.valueOf(count)),
+                            Placeholder.unparsed("days", String.valueOf(daysLeft)),
+                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
+                } else {
+                    player.sendMessage(locale.getPrefixedComponent(player, 
+                            "messages.overflow-login-warning",
+                            Placeholder.unparsed("count", String.valueOf(count)),
+                            Placeholder.unparsed("command", plugin.getPrimaryCommand() + " overflow")));
+                }
+                warnedThisSession.add(player.getUniqueId());
+            });
+        });
     }
 
     /**
@@ -314,7 +313,7 @@ public class OverflowManager {
         if (!vaultHandler.canAfford(player, totalFee)) {
             // Insufficient funds
             LocaleManager locale = plugin.getLocaleManager();
-            player.sendMessage(locale.getPrefixedComponent(
+            player.sendMessage(locale.getPrefixedComponent(player, 
                     "messages.overflow-fee-insufficient",
                     Placeholder.unparsed("amount", vaultHandler.format(totalFee)),
                     Placeholder.unparsed("balance", vaultHandler.format(vaultHandler.getBalance(player)))));
@@ -325,7 +324,7 @@ public class OverflowManager {
         boolean success = vaultHandler.withdraw(player, totalFee, "CustomEnderChest overflow retrieval");
         if (success) {
             LocaleManager locale = plugin.getLocaleManager();
-            player.sendMessage(locale.getPrefixedComponent(
+            player.sendMessage(locale.getPrefixedComponent(player, 
                     "messages.overflow-fee-charged",
                     Placeholder.unparsed("amount", vaultHandler.format(totalFee)),
                     Placeholder.unparsed("count", String.valueOf(itemCount))));

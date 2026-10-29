@@ -354,14 +354,26 @@ public class StorageManager {
             plugin.getLogger().info("Database thread pool shut down.");
         }
         if (dataSource != null && !dataSource.isClosed()) {
-            try (Connection conn = dataSource.getConnection();
-                 java.sql.Statement stmt = conn.createStatement()) {
-                if (conn.getMetaData().getURL().startsWith("jdbc:h2:")) {
-                    stmt.execute("CHECKPOINT SYNC");
-                    stmt.execute("SHUTDOWN");
+            Connection finalizeConnection = null;
+            try {
+                finalizeConnection = dataSource.getConnection();
+                if (finalizeConnection.getMetaData().getURL().startsWith("jdbc:h2:")) {
+                    try (java.sql.Statement stmt = finalizeConnection.createStatement()) {
+                        stmt.execute("CHECKPOINT SYNC");
+                        stmt.execute("SHUTDOWN");
+                    }
                 }
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to finalize database before closing pool: " + e.getMessage());
+            } finally {
+                if (finalizeConnection != null) {
+                    try {
+                        finalizeConnection.close();
+                    } catch (Exception ignored) {
+                        // H2 already closed the connection during SHUTDOWN; closing
+                        // it again must not raise a spurious warning.
+                    }
+                }
             }
             dataSource.close();
             plugin.getLogger().info("Database connection pool closed.");

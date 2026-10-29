@@ -25,6 +25,10 @@ Join support discord: https://discord.gg/sGZ2QSMDEg
     * **YML:** Simple, human-readable files for each player, perfect for small servers.
 * **🎨 Highly Configurable:** Customize messages, inventory titles, sounds, and the main command/aliases. Language files use MiniMessage and can be reloaded at runtime.
 * **📦 Permission-Based Sizes:** Grant players different Ender Chest sizes (from 1 to 6 rows) using simple and intuitive permission nodes.
+* **🏦 Multiple Vaults:** Players can own several Ender Chests. Unlock them with `CustomEnderChest.vaults.<number>` (or `vaults.*`), size each one with `CustomEnderChest.vault.<number>.level.<0-5>`, and pick between them in the configurable vault selector GUI (`/cec vaults`). Existing data automatically becomes Vault 1 — nothing is lost on upgrade.
+* **🎨 Resource Pack Friendly:** The vault selector GUI accepts custom items from ItemsAdder or Nexo (`itemadder:<namespace:id>` / `nexo:<item_id>`), and `rich-titles` enables full MiniMessage (fonts, gradients) in inventory titles.
+* **👻 Vanish Aware:** Vanished players (EssentialsX, Vanish, etc.) never trigger the custom chest, sounds, or block animation when right-clicking an Ender Chest.
+* **🧩 Developer API:** A public Java API (`CustomEnderChestAPI`) and Bukkit events (vault open/close/delete, cancellable) let other plugins read and manage player vaults.
 * **🔧 Modern Dependencies:** Uses HikariCP for efficient database connection pooling and is built on the modern Paper API for stability and future-proofing.
 * **🔄 Legacy Data Importer:** Includes a command to easily import player data from older, file-based versions of the plugin.
 

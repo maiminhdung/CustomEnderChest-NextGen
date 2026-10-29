@@ -6,6 +6,8 @@ import dev.faststats.data.Metric;
 import lombok.Getter;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.SimplePie;
+import org.maiminhdung.customenderchest.api.CustomEnderChestAPI;
+import org.maiminhdung.customenderchest.api.CustomEnderChestImpl;
 import org.maiminhdung.customenderchest.backup.BackupManager;
 import org.maiminhdung.customenderchest.commands.CommandRegistrationManager;
 import org.maiminhdung.customenderchest.commands.EnderChestCommand;
@@ -18,6 +20,9 @@ import org.maiminhdung.customenderchest.storage.StorageManager;
 import org.maiminhdung.customenderchest.update.ConfigUpdateManager;
 import org.maiminhdung.customenderchest.update.UpdateManager;
 import org.maiminhdung.customenderchest.utils.DataLockManager;
+import org.maiminhdung.customenderchest.vault.FirstRunSetupManager;
+import org.maiminhdung.customenderchest.vault.GuiConfigManager;
+import org.maiminhdung.customenderchest.vault.VaultSelectorManager;
 import org.maiminhdung.customenderchest.utils.DebugLogger;
 import org.maiminhdung.customenderchest.utils.SoundHandler;
 import org.maiminhdung.customenderchest.utils.VaultHandler;
@@ -66,6 +71,12 @@ public final class EnderChest extends JavaPlugin {
 	private VaultHandler vaultHandler;
 	@Getter
 	private OverflowManager overflowManager;
+	@Getter
+	private VaultSelectorManager vaultSelectorManager;
+	@Getter
+	private FirstRunSetupManager firstRunSetupManager;
+	@Getter
+	private GuiConfigManager guiConfigManager;
 
 	@Override
 	public void onEnable() {
@@ -90,8 +101,28 @@ public final class EnderChest extends JavaPlugin {
 		// Initialize Database Manager with HikariCP
 		this.storageManager = new StorageManager(this);
 
+		// One-time bulk migration of 2.1.x (single-chest) data into the
+		// multi-vault tables. Idempotent; the per-player migration on vault-1
+		// load remains as a safety net. Runs during STARTUP, before joins.
+		this.storageManager.getStorage().migrateLegacyData().thenAccept(migrated -> {
+			if (migrated > 0) {
+				this.getLogger().info("[Migration] 2.1.x -> 2.2.0: moved " + migrated
+						+ " player(s) into vault storage (vault 1).");
+			}
+		});
+
 		// Initialize the core logic manager
 		this.enderChestManager = new EnderChestManager(this);
+
+		// Initialize the editable GUI layouts, the vault selector GUI manager
+		// and the first-run setup
+		this.guiConfigManager = new GuiConfigManager(this);
+		this.vaultSelectorManager = new VaultSelectorManager(this);
+		this.firstRunSetupManager = new FirstRunSetupManager(this);
+
+		// Register the public developer API
+		CustomEnderChestAPI.setInstance(new CustomEnderChestImpl(this));
+		this.getLogger().info("Developer API enabled (org.maiminhdung.customenderchest.api).");
 
 		// Initialize Vault economy handler (soft dependency)
 		this.vaultHandler = new VaultHandler();
@@ -199,6 +230,22 @@ public final class EnderChest extends JavaPlugin {
 	public void onDisable() {
 		this.getLogger().info("CustomEnderChest is shutting down...");
 
+		// Unregister the developer API first so no new API calls arrive mid-shutdown
+		CustomEnderChestAPI.setInstance(null);
+
+		// Unregister the GlobalTranslator source for our locale store
+		if (this.localeManager != null) {
+			this.localeManager.shutdown();
+		}
+
+		// Clear vault selector / setup tracking
+		if (this.vaultSelectorManager != null) {
+			this.vaultSelectorManager.clear();
+		}
+		if (this.firstRunSetupManager != null) {
+			this.firstRunSetupManager.clear();
+		}
+
 		// Stop automatic backup task first
 		if (this.backupManager != null) {
 			this.backupManager.stopAutoBackup();
@@ -268,6 +315,9 @@ public final class EnderChest extends JavaPlugin {
 		boolean localeReloaded = localeManager == null || localeManager.loadLocale();
 		boolean commandsReloaded = commandRegistrationManager == null
 				|| commandRegistrationManager.applyConfiguredCommands();
+		if (guiConfigManager != null) {
+			guiConfigManager.reload();
+		}
 		if (debugLogger != null) {
 			debugLogger.reload();
 		}

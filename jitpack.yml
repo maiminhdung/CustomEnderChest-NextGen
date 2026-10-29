@@ -1,0 +1,10 @@
+# JitPack build configuration.
+# Consumers can depend on the API module with:
+#   repositories { maven { url 'https://jitpack.io' } }
+#   dependencies { compileOnly 'com.github.maiminhdung.CustomEnderChest-NextGen:customenderchest-api:VERSION' }
+jdk:
+  - openjdk21
+before_install:
+  - sdk install java 21.0.3-tem < /dev/null || true
+install:
+  - ./gradlew clean publishToMavenLocal
