@@ -123,69 +123,69 @@ gui:
   setup:
     title: "<dark_aqua>▶ <black>Thiết lập Ender Chest <dark_gray>[<dark_aqua>/cec setup<dark_gray>]"
     single-name: "<green><bold>MỘT ENDER CHEST <dark_gray>(cổ điển)"
-    single-lore: "
-<white>Thông tin chung:
+    single-lore: |
+      <white>Thông tin chung:
 
-<gray>Mỗi người một rương, giống vanilla</gray>
-<gray>và các phiên bản trước của plugin.</gray>
+      <gray>Mỗi người một rương, giống vanilla</gray>
+      <gray>và các phiên bản trước của plugin.</gray>
 
-<gray>Size theo</gray> <gold>CustomEnderChest.level.<0-5></gold>
-<gray>Mặc định:</gray> <gold>default-player.size</gold>
+      <gray>Size theo</gray> <gold>CustomEnderChest.level.<0-5></gold>
+      <gray>Mặc định:</gray> <gold>default-player.size</gold>
 
-<yellow>▶ Click để chọn chế độ này</yellow>
-<gray>Có thể bật Multi-Vault sau qua</gray>
-<gray><gold>multi-vault.enabled</gold> <gray>trong config.yml.</gray>"
+      <yellow>▶ Click để chọn chế độ này</yellow>
+      <gray>Có thể bật Multi-Vault sau qua</gray>
+      <gray><gold>multi-vault.enabled</gold> <gray>trong config.yml.</gray>
     multi-name: "<light_purple><bold>MULTI-VAULT <dark_gray>(nhiều rương)"
-    multi-lore: "
-<white>Thông tin chung:
+    multi-lore: |
+      <white>Thông tin chung:
 
-<gray>Mỗi người sở hữu nhiều rương</gray>
-<gray>(vault) mở khóa bằng permission.</gray>
+      <gray>Mỗi người sở hữu nhiều rương</gray>
+      <gray>(vault) mở khóa bằng permission.</gray>
 
-<gray>Mở vault:</gray> <gold>CustomEnderChest.vaults.<n></gold>
-<gray>Size Vault 1:</gray> <gold>CustomEnderChest.level.<0-5></gold>
-<gray>Size Vault n:</gray> <gold>CustomEnderChest.vault.<n>.level.<0-5></gold>
-<gray>GUI selector, overflow từng rương,</gray>
-<gray>admin xem được mọi vault.</gray>
+      <gray>Mở vault:</gray> <gold>CustomEnderChest.vaults.<n></gold>
+      <gray>Size Vault 1:</gray> <gold>CustomEnderChest.level.<0-5></gold>
+      <gray>Size Vault n:</gray> <gold>CustomEnderChest.vault.<n>.level.<0-5></gold>
+      <gray>GUI selector, overflow từng rương,</gray>
+      <gray>admin xem được mọi vault.</gray>
 
-<yellow>▶ Click để chọn chế độ này</yellow>
-<gray>Dữ liệu cũ tự thành Vault 1.</gray>"
+      <yellow>▶ Click để chọn chế độ này</yellow>
+      <gray>Dữ liệu cũ tự thành Vault 1.</gray>
     guide-name: "<aqua><bold>CÁCH HOẠT ĐỘNG <dark_gray>(thông tin)"
-    guide-lore: "
-<gray>Cả hai chế độ dùng chung một nơi</gray>
-<gray>lưu dữ liệu; dữ liệu luôn an toàn.</gray>
+    guide-lore: |
+      <gray>Cả hai chế độ dùng chung một nơi</gray>
+      <gray>lưu dữ liệu; dữ liệu luôn an toàn.</gray>
 
-<white>Một rương:</white> <gray>27 ô mặc định,</gray>
-<gray>mở rộng tới 54 ô.</gray>
+      <white>Một rương:</white> <gray>27 ô mặc định,</gray>
+      <gray>mở rộng tới 54 ô.</gray>
 
-<white>Multi-Vault:</white> <gray>tối đa</gray> <gold>multi-vault.max-vaults</gold>
-<gray>rương mỗi người, mỗi rương</gray>
-<gray>một kích thước riêng.</gray>
+      <white>Multi-Vault:</white> <gray>tối đa</gray> <gold>multi-vault.max-vaults</gold>
+      <gray>rương mỗi người, mỗi rương</gray>
+      <gray>một kích thước riêng.</gray>
 
-<yellow>▶ Click vào lựa chọn để chọn</yellow>"
+      <yellow>▶ Click vào lựa chọn để chọn</yellow>
     close-name: "<red><bold>ĐÓNG <dark_gray>(để sau)"
-    close-lore: "
-<gray>Đóng GUI này mà chưa chọn.</gray>
-<gray>Sẽ hiện lại khi admin tiếp theo</gray>
-<gray>vào, hoặc gõ</gray> <gold>/cec setup</gold><gray>.</gray>"
+    close-lore: |
+      <gray>Đóng GUI này mà chưa chọn.</gray>
+      <gray>Sẽ hiện lại khi admin tiếp theo</gray>
+      <gray>vào, hoặc gõ</gray> <gold>/cec setup</gold><gray>.</gray>
   selector:
     title: "<dark_aqua>▶ <black>Vault của bạn <dark_gray>[<dark_aqua>/cec vaults<dark_gray>]"
     vault-name: "<light_purple><bold>VAULT <vault> <dark_gray>(<size> ô)"
-    vault-lore: "
-<white>Thông tin vault:
+    vault-lore: |
+      <white>Thông tin vault:
 
-<gray>Vật phẩm:</gray> <yellow><items></yellow>
-<gray>Kích thước:</gray> <yellow><size> ô</yellow>
+      <gray>Vật phẩm:</gray> <yellow><items></yellow>
+      <gray>Kích thước:</gray> <yellow><size> ô</yellow>
 
-<yellow>▶ Click để mở vault này</yellow>"
+      <yellow>▶ Click để mở vault này</yellow>
     locked-name: "<gray><bold>VAULT <vault> <dark_gray>(chưa mở khóa)"
-    locked-lore: "
-<white>Thông tin vault:
+    locked-lore: |
+      <white>Thông tin vault:
 
-<gray>Kích thước:</gray> <yellow>???</yellow>
+      <gray>Kích thước:</gray> <yellow>???</yellow>
 
-<red>✘ Bạn không có quyền</red>
-<red>sử dụng vault này.</red>"
+      <red>✘ Bạn không có quyền</red>
+      <red>sử dụng vault này.</red>
     close-name: "<red><bold>ĐÓNG"
-    close-lore: "
-<gray>Đóng menu này.</gray>"
+    close-lore: |
+      <gray>Đóng menu này.</gray>

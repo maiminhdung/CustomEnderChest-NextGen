@@ -291,6 +291,8 @@ public class LocaleManager {
 		for (String key : config.getKeys(false)) {
 			if (config.isConfigurationSection(key)) {
 				flattenSection(key, config.getConfigurationSection(key), flat);
+			} else if (config.isList(key)) {
+				flat.put(key, String.join("\n", config.getStringList(key)));
 			} else if (config.isString(key)) {
 				flat.put(key, config.getString(key));
 			}
@@ -304,6 +306,8 @@ public class LocaleManager {
 			String path = prefix + "." + key;
 			if (section.isConfigurationSection(key)) {
 				flattenSection(path, section.getConfigurationSection(key), flat);
+			} else if (section.isList(key)) {
+				flat.put(path, String.join("\n", section.getStringList(key)));
 			} else if (section.isString(key)) {
 				flat.put(path, section.getString(key));
 			}
@@ -344,8 +348,8 @@ public class LocaleManager {
 
 	/** Locale-aware value chain: viewer locale → configured locale → English → default. */
 	private String resolveString(CommandSender viewer, String key, String defaultValue) {
-		String value = configFor(codeFor(viewer)) != null
-				? configFor(codeFor(viewer)).getString(key) : null;
+		FileConfiguration viewerConfig = configFor(codeFor(viewer));
+		String value = viewerConfig != null ? getStringOrList(viewerConfig, key) : null;
 		if (value == null) {
 			value = resolveString(key, defaultValue);
 		}
@@ -354,11 +358,23 @@ public class LocaleManager {
 
 	/** Configured-locale value chain: configured locale → English → default. */
 	private String resolveString(String key, String defaultValue) {
-		String value = configFor(activeLocale) != null ? configFor(activeLocale).getString(key) : null;
+		FileConfiguration activeConfig = configFor(activeLocale);
+		String value = activeConfig != null ? getStringOrList(activeConfig, key) : null;
 		if (value == null) {
-			value = configFor(DEFAULT_LOCALE) != null ? configFor(DEFAULT_LOCALE).getString(key) : null;
+			FileConfiguration defConfig = configFor(DEFAULT_LOCALE);
+			value = defConfig != null ? getStringOrList(defConfig, key) : null;
 		}
 		return value != null ? value : defaultValue;
+	}
+
+	private String getStringOrList(FileConfiguration config, String key) {
+		if (config == null || key == null) {
+			return null;
+		}
+		if (config.isList(key)) {
+			return String.join("\n", config.getStringList(key));
+		}
+		return config.getString(key);
 	}
 
 	public String getRawString(String key, String defaultValue) {

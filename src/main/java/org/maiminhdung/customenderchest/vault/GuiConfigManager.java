@@ -1,6 +1,7 @@
 package org.maiminhdung.customenderchest.vault;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.command.CommandSender;
@@ -125,9 +126,25 @@ public class GuiConfigManager {
 	/**
 	 * Resolves a GUI text value. Values starting with {@code lang:} are
 	 * looked up as keys in the language files (viewer-aware overload
-	 * available for per-player locales); anything else is raw MiniMessage.
+	 * available for per-player locales); lists are joined with newlines;
+	 * anything else is raw MiniMessage.
 	 */
 	public String text(org.bukkit.configuration.ConfigurationSection config, String path, String def) {
+		if (config == null) {
+			return def;
+		}
+		if (config.isList(path)) {
+			List<String> list = config.getStringList(path);
+			List<String> resolved = new ArrayList<>();
+			for (String entry : list) {
+				if (entry != null && entry.regionMatches(true, 0, "lang:", 0, 5)) {
+					resolved.add(plugin.getLocaleManager().getRawString(entry.substring(5), entry));
+				} else if (entry != null) {
+					resolved.add(entry);
+				}
+			}
+			return String.join("\n", resolved);
+		}
 		String raw = config.getString(path, def);
 		if (raw != null && raw.regionMatches(true, 0, "lang:", 0, 5)) {
 			return plugin.getLocaleManager().getRawString(raw.substring(5), def);
@@ -137,6 +154,21 @@ public class GuiConfigManager {
 
 	/** Viewer-aware variant: {@code lang:} values resolve in the player's locale. */
 	public String text(CommandSender viewer, org.bukkit.configuration.ConfigurationSection config, String path, String def) {
+		if (config == null) {
+			return def;
+		}
+		if (config.isList(path)) {
+			List<String> list = config.getStringList(path);
+			List<String> resolved = new ArrayList<>();
+			for (String entry : list) {
+				if (entry != null && entry.regionMatches(true, 0, "lang:", 0, 5)) {
+					resolved.add(plugin.getLocaleManager().getRawString(viewer, entry.substring(5), entry));
+				} else if (entry != null) {
+					resolved.add(entry);
+				}
+			}
+			return String.join("\n", resolved);
+		}
 		String raw = config.getString(path, def);
 		if (raw != null && raw.regionMatches(true, 0, "lang:", 0, 5)) {
 			return plugin.getLocaleManager().getRawString(viewer, raw.substring(5), def);
@@ -190,7 +222,8 @@ public class GuiConfigManager {
 
 	/**
 	 * Builds an ItemStack from a material spec + MiniMessage name/lore with
-	 * placeholders. Lore splits on real or escaped newlines. Returns null
+	 * placeholders. Lore splits on real or escaped newlines. Disables default
+	 * vanilla italics on display name and lore unless explicitly tagged. Returns null
 	 * when the spec is "none" or cannot be resolved.
 	 */
 	public ItemStack buildItem(CommandSender viewer, String materialSpec, String name, String lore,
@@ -203,18 +236,30 @@ public class GuiConfigManager {
 		ItemMeta meta = item.getItemMeta();
 		if (meta != null) {
 			if (name != null && !name.isBlank()) {
-				meta.displayName(miniMessage.deserialize(name, placeholders));
+				meta.displayName(renderComponent(name, placeholders));
 			}
 			if (lore != null && !lore.isBlank()) {
 				List<Component> loreLines = new ArrayList<>();
-				for (String line : lore.split("\\\\n|\\n")) {
-					loreLines.add(miniMessage.deserialize(line, placeholders));
+				for (String line : lore.split("\\\\r\\\\n|\\\\n|\\r\\n|\\n")) {
+					loreLines.add(renderComponent(line, placeholders));
 				}
 				meta.lore(loreLines);
 			}
 			item.setItemMeta(meta);
 		}
 		return item;
+	}
+
+	/**
+	 * Deserializes MiniMessage text while disabling vanilla Minecraft's default
+	 * italic styling on item meta, unless the text explicitly enables italics.
+	 */
+	private Component renderComponent(String text, TagResolver... placeholders) {
+		if (text == null || text.isBlank()) {
+			return Component.empty().decoration(TextDecoration.ITALIC, false);
+		}
+		Component parsed = miniMessage.deserialize(text, placeholders);
+		return Component.empty().decoration(TextDecoration.ITALIC, false).append(parsed);
 	}
 
 	/** Slot index guard: keeps values inside the inventory, silently dropping others. */

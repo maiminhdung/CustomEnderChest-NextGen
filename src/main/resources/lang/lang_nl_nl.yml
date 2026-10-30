@@ -120,69 +120,69 @@ gui:
   setup:
     title: "<dark_aqua>▶ <black>Ender Chest Setup <dark_gray>[<dark_aqua>/cec setup<dark_gray>]"
     single-name: "<green><bold>SINGLE ENDER CHEST <dark_gray>(classic)"
-    single-lore: "
-<white>General information:
+    single-lore: |
+      <white>General information:
 
-<gray>One chest per player, like vanilla</gray>
-<gray>and previous versions of this plugin.</gray>
+      <gray>One chest per player, like vanilla</gray>
+      <gray>and previous versions of this plugin.</gray>
 
-<gray>Size by</gray> <gold>CustomEnderChest.level.<0-5></gold>
-<gray>Fallback:</gray> <gold>default-player.size</gold>
+      <gray>Size by</gray> <gold>CustomEnderChest.level.<0-5></gold>
+      <gray>Fallback:</gray> <gold>default-player.size</gold>
 
-<yellow>▶ Click to choose this mode</yellow>
-<gray>Switch to Multi-Vault anytime via</gray>
-<gray><gold>multi-vault.enabled</gold> <gray>in config.yml.</gray>"
+      <yellow>▶ Click to choose this mode</yellow>
+      <gray>Switch to Multi-Vault anytime via</gray>
+      <gray><gold>multi-vault.enabled</gold> <gray>in config.yml.</gray>
     multi-name: "<light_purple><bold>MULTI-VAULT <dark_gray>(multiple chests)"
-    multi-lore: "
-<white>General information:
+    multi-lore: |
+      <white>General information:
 
-<gray>Each player owns multiple chests</gray>
-<gray>(vaults) unlocked by permissions.</gray>
+      <gray>Each player owns multiple chests</gray>
+      <gray>(vaults) unlocked by permissions.</gray>
 
-<gray>Unlock vaults:</gray> <gold>CustomEnderChest.vaults.<n></gold>
-<gray>Vault 1 size:</gray> <gold>CustomEnderChest.level.<0-5></gold>
-<gray>Vault n size:</gray> <gold>CustomEnderChest.vault.<n>.level.<0-5></gold>
-<gray>Selector GUI, per-vault overflow,</gray>
-<gray>admin access to every vault.</gray>
+      <gray>Unlock vaults:</gray> <gold>CustomEnderChest.vaults.<n></gold>
+      <gray>Vault 1 size:</gray> <gold>CustomEnderChest.level.<0-5></gold>
+      <gray>Vault n size:</gray> <gold>CustomEnderChest.vault.<n>.level.<0-5></gold>
+      <gray>Selector GUI, per-vault overflow,</gray>
+      <gray>admin access to every vault.</gray>
 
-<yellow>▶ Click to choose this mode</yellow>
-<gray>Existing data becomes Vault 1.</gray>"
+      <yellow>▶ Click to choose this mode</yellow>
+      <gray>Existing data becomes Vault 1.</gray>
     guide-name: "<aqua><bold>HOW IT WORKS <dark_gray>(info)"
-    guide-lore: "
-<gray>Both modes share the same storage</gray>
-<gray>backend; player data is safe either way.</gray>
+    guide-lore: |
+      <gray>Both modes share the same storage</gray>
+      <gray>backend; player data is safe either way.</gray>
 
-<white>Single:</white> <gray>one chest, 27 slots by</gray>
-<gray>default, expandable to 54.</gray>
+      <white>Single:</white> <gray>one chest, 27 slots by</gray>
+      <gray>default, expandable to 54.</gray>
 
-<white>Multi-Vault:</white> <gray>up to</gray> <gold>multi-vault.max-vaults</gold>
-<gray>chests per player, each with</gray>
-<gray>its own size.</gray>
+      <white>Multi-Vault:</white> <gray>up to</gray> <gold>multi-vault.max-vaults</gold>
+      <gray>chests per player, each with</gray>
+      <gray>its own size.</gray>
 
-<yellow>▶ Click an option to choose</yellow>"
+      <yellow>▶ Click an option to choose</yellow>
     close-name: "<red><bold>CLOSE <dark_gray>(decide later)"
-    close-lore: "
-<gray>Close this GUI without choosing.</gray>
-<gray>It reappears on the next admin join,</gray>
-<gray>or run</gray> <gold>/cec setup</gold><gray>.</gray>"
+    close-lore: |
+      <gray>Close this GUI without choosing.</gray>
+      <gray>It reappears on the next admin join,</gray>
+      <gray>or run</gray> <gold>/cec setup</gold><gray>.</gray>
   selector:
     title: "<dark_aqua>▶ <black>Your Vaults <dark_gray>[<dark_aqua>/cec vaults<dark_gray>]"
     vault-name: "<light_purple><bold>VAULT <vault> <dark_gray>(<size> slots)"
-    vault-lore: "
-<white>Vault informations:
+    vault-lore: |
+      <white>Vault informations:
 
-<gray>Items stored:</gray> <yellow><items></yellow>
-<gray>Size:</gray> <yellow><size> slots</yellow>
+      <gray>Items stored:</gray> <yellow><items></yellow>
+      <gray>Size:</gray> <yellow><size> slots</yellow>
 
-<yellow>▶ Click to open this vault</yellow>"
+      <yellow>▶ Click to open this vault</yellow>
     locked-name: "<gray><bold>VAULT <vault> <dark_gray>(locked)"
-    locked-lore: "
-<white>Vault informations:
+    locked-lore: |
+      <white>Vault informations:
 
-<gray>Size:</gray> <yellow>???</yellow>
+      <gray>Size:</gray> <yellow>???</yellow>
 
-<red>✘ You don't have permission</red>
-<red>to use this vault.</red>"
+      <red>✘ You don't have permission</red>
+      <red>to use this vault.</red>
     close-name: "<red><bold>CLOSE"
-    close-lore: "
-<gray>Close this menu.</gray>"
+    close-lore: |
+      <gray>Close this menu.</gray>
